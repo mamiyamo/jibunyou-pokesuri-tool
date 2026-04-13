@@ -36,11 +36,7 @@ const LowerTabHeader = React.memo(({
         setMoreMenuAnchor(null);
 
         const type = e.currentTarget.getAttribute('data-value') || "";
-        if (type === "addThis") {
-            setShowAddConfirm(true);
-        } else {
-            dispatch({type} as IvAction);
-        }
+        dispatch({type} as IvAction);
     }, [dispatch]);
 
     const onShareHandler = React.useCallback(() => {
@@ -59,6 +55,10 @@ const LowerTabHeader = React.memo(({
         setMoreMenuAnchor(null);
     }, []);
 
+    const onAddClick = React.useCallback(() => {
+        setShowAddConfirm(true);
+    }, []);
+
     const onAddConfirmCancel = React.useCallback(() => {
         setShowAddConfirm(false);
     }, []);
@@ -70,6 +70,10 @@ const LowerTabHeader = React.memo(({
     }, [dispatch, state.pokemonIv]);
 
     return (<StyledContainer>
+        {tabIndex === 0 && <IconButton aria-label="add to box" color="inherit"
+            onClick={onAddClick}>
+            <AddCircleOutlineIcon />
+        </IconButton>}
         {tabIndex !== 2 && <IconButton aria-label="actions" color="inherit" onClick={moreButtonClick}>
             <MoreIcon />
         </IconButton>}
@@ -82,10 +86,6 @@ const LowerTabHeader = React.memo(({
         <Menu anchorEl={moreMenuAnchor} open={isIvMenuOpen}
             onClose={onMoreMenuClose} anchorOrigin={{vertical: "bottom", horizontal: "left"}}>
             <MenuList>
-                <MenuItem onClick={onMenuItemClickHandler} data-value="addThis">
-                    <ListItemIcon><AddCircleOutlineIcon/></ListItemIcon>
-                    {t('add to box')}
-                </MenuItem>
                 <MenuItem onClick={onShareHandler} data-value="share">
                     <ListItemIcon><IosShareIcon/></ListItemIcon>
                     {t('share')}
