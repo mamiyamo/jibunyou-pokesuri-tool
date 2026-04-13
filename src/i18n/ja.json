@@ -741,12 +741,12 @@
 
         "select subskill at level xxx": "<level/> のサブスキルを選択してください",
 
-        "about1": "このツールは、<profile>nitoyon の pokesleep-tool</profile> をベースにした非公式の個人改修版です。",
+        "about1": "このツールは、<profile>nitoyon様 の pokesleep-tool</profile> をベースにした非公式の個人改修版です。MIT License のもとで公開されている pokesleep-tool のコードを利用して、ポケモンスリープの育成に役立つ情報を提供することを目的としています。",
         "profile": "https://github.com/nitoyon/pokesleep-tool",
         "x username": "nitoyon",
         "about2": "改善要望・不具合報告は、このリポジトリの <github>Discussions</github> または Issues までお願いします。",
         "about3": "利用しているデータは「<wiki>ポケモンスリープ攻略・検証Wiki</wiki>」「<rp>RP collection project</rp>」「<raenonx>RaenonX</raenonx>」を参照しています。",
-        "about4": "食材のアイコンは、ちゃんりわさんが作成してくれました。",
+        "about4": "食材のアイコンは、nitoyon様ツールでちゃんりわさんが作成されたものを流用させていただきました。",
 
         "skills": {
             "Ingredient Magnet S": "食材ゲットS",
