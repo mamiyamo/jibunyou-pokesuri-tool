@@ -31,6 +31,13 @@ function formatDays(value: number): string {
     return value.toFixed(1);
 }
 
+function formatHoursMinutesFromDays(value: number): string {
+    const totalMinutes = Math.round(value * 24 * 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}時間${minutes}分`;
+}
+
 function formatDailyCount(value: number): string {
     return value.toFixed(1);
 }
@@ -276,7 +283,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 <Typography variant="body2">ー</Typography>
                                             ) : (
                                                 <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
-                                                    {formatDays(totalDays)}日
+                                                    {formatDays(totalDays)}日（{formatHoursMinutesFromDays(totalDays)}）
                                                 </Typography>
                                             )}
                                         </Stack>
@@ -542,9 +549,14 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     }}
                                                 >
                                                     {row.days === null ? 'ー' : (
-                                                        <Typography variant="caption" sx={{lineHeight: 1, whiteSpace: 'nowrap'}}>
-                                                            {formatDays(row.days)}日
-                                                        </Typography>
+                                                        <Stack spacing={0} alignItems="flex-end">
+                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                {formatDays(row.days)}日
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                {formatHoursMinutesFromDays(row.days)}
+                                                            </Typography>
+                                                        </Stack>
                                                     )}
                                                 </TableCell>
                                                 {showEnergyDetails && <>
