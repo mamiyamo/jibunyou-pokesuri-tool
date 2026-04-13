@@ -1,4 +1,4 @@
-﻿import { IngredientName } from '../data/pokemons';
+import { IngredientName, IngredientNames } from '../data/pokemons';
 import { PokemonBoxItem } from './PokemonBox';
 import PokemonStrength, {
     createStrengthParameter, noFavoriteFieldIndex, recipeLevelBonus, StrengthParameter
@@ -330,7 +330,8 @@ export function getDailyIngredientDetailMap(
     const skillName = boxItem.iv.pokemon.skill === "Versatile" ?
         boxItem.iv.versatileSkill : boxItem.iv.pokemon.skill;
     const ingredientPool = getSkillIngredientPool(boxItem, skillName);
-    const shouldUseEqualWeight = skillName === "Ingredient Draw S";
+    const shouldUseEqualWeight = skillName.startsWith("Ingredient Magnet S") ||
+        skillName === "Ingredient Draw S";
     if (ingredientPool.length === 0) {
         return ret;
     }
@@ -376,6 +377,10 @@ export function getDailyIngredientDetailMap(
 }
 
 function getSkillIngredientPool(boxItem: PokemonBoxItem, skillName: string): IngredientName[] {
+    if (skillName.startsWith("Ingredient Magnet S")) {
+        return IngredientNames;
+    }
+
     // 食材セレクトSは固定食材セットを使う（解放状況には依存しない）
     if (skillName === "Ingredient Draw S") {
         if (boxItem.iv.pokemon.ing1.name === 'avocado') {
@@ -390,3 +395,4 @@ function getSkillIngredientPool(boxItem: PokemonBoxItem, skillName: string): Ing
     return boxItem.iv.getIngredients(true)
         .filter(x => !x.startsWith('unknown'));
 }
+

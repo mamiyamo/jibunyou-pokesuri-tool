@@ -10,6 +10,8 @@ import PokemonStrength, {
 import { StrengthParameter } from '../../../util/PokemonStrength';
 import { AmountOfSleep } from '../../../util/TimeUtil';
 import { Dialog, Select, SelectChangeEvent, MenuItem, Switch } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import MainSkillIcon from '../MainSkillIcon';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import InfoButton from '../InfoButton';
@@ -176,6 +178,8 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
     dispatch: React.Dispatch<IvAction>,
 }) => {
     const { t } = useTranslation();
+    const theme = useTheme();
+    const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const [helpOpen, setHelpOpen] = React.useState(false);
     const [decendantId, setDecendantId] = React.useState(0);
     const [berryHelpOpen, setBerryHelpOpen] = React.useState(false);
@@ -230,6 +234,23 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
             useSkillPity: e.target.checked,
         }}});
     }, [dispatch, settings]);
+
+    const skillPityControl = <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: '.15rem',
+        flexWrap: 'wrap',
+        fontSize: '0.7rem',
+        color: '#666',
+        padding: isSmallScreen ? '0 .5rem .2rem' : 0,
+    }}>
+        <span>天井回数: {pokemonIv.skillPityCeiling}</span>
+        <span>天井考慮</span>
+        <Switch size="small" aria-label="天井を考慮する"
+            checked={settings.useSkillPity}
+            onChange={onUseSkillPityChange}/>
+    </div>;
 
     // format berry value
     const berryStrength = formatWithComma(Math.round(result.berryTotalStrength));
@@ -300,17 +321,12 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
             <h3 style={{background: '#44a2fd'}}>{t('skill')}
                 <InfoButton onClick={onSkillHelpClick}/>
             </h3>
+            {isSmallScreen && skillPityControl}
             {mainSkillArticle}
             <footer>
                 <div>{round1(result.skillRate * 100)}%</div>
                 <div>{round2(result.skillCount)}{t('times unit')}</div>
-                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '.15rem'}}>
-                    <span>天井回数: {pokemonIv.skillPityCeiling}</span>
-                    <span>天井考慮</span>
-                    <Switch size="small" aria-label="天井を考慮する"
-                        checked={settings.useSkillPity}
-                        onChange={onUseSkillPityChange}/>
-                </div>
+                {!isSmallScreen && skillPityControl}
             </footer>
         </section>
         {settings.period > whistlePeriod && <footer>
@@ -659,3 +675,4 @@ export const StyledInfoDialog = styled(Dialog)({
 });
 
 export default StrengthBerryIngSkillStrengthView;
+
