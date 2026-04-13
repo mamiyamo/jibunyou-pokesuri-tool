@@ -5,7 +5,7 @@ import { configDefaults } from 'vitest/config'
 import path from 'path';
 
 export default defineConfig({
-  base: '/pokesleep-tool/',
+  base: '/jibunyou-pokesuri-tool/',
   plugins: [eslint(), react()],
   build: {
     rollupOptions: {

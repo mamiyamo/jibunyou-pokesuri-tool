@@ -18,7 +18,7 @@ We're happy to help guide you!
 ## Questions?
 
 If you have any questions or are unsure about something,  
-please feel free to ask in [Discussions](https://github.com/nitoyon/pokesleep-tool/discussions/) or open an issue.  
+please feel free to ask in [Discussions](https://github.com/mamiyamo/jibunyou-pokesuri-tool/discussions/) or open an issue.  
 We’re happy to help and welcome your input!
 
 Thank you for your support!

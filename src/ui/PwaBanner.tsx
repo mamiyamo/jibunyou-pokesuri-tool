@@ -174,7 +174,7 @@ const IPhoneMessageDialog = React.memo(({app, open, onClose}:IPhoneMessageDialog
     const [copyCompleted, setCopyCompleted] = useState(false);
 
     const onCopyUrl = useCallback(async () => {
-        let url = "https://nitoyon.github.io/pokesleep-tool/" +
+        let url = "https://mamiyamo.github.io/jibunyou-pokesuri-tool/" +
             (app === 'IvCalc' ? 'iv/' : '');
         if (i18n.language !== "en") {
             url += "index." + i18n.language + ".html";

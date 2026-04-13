@@ -40,7 +40,7 @@ import i18n from './i18n';
     );
 
     // emulate AdSense banner
-    if (window.location.hostname !== "nitoyon.github.io") {
+    if (window.location.hostname !== "mamiyamo.github.io") {
         document.body.style.padding = '30px 0px 0px';
         const ins = document.createElement('ins');
         ins.style.display = 'block';
@@ -63,7 +63,7 @@ import i18n from './i18n';
 
     window.addEventListener('load', () => {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/pokesleep-tool/sw.js');
+            navigator.serviceWorker.register('/jibunyou-pokesuri-tool/sw.js');
         }
     });
 })();

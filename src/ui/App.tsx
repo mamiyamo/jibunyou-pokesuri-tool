@@ -106,7 +106,7 @@ function useMultilingual(config: AppConfig) {
  */
 function useRouter(language: string): [AppType, (v:AppType) => void] {
     const initialApp: AppType = (
-        window.location.pathname.startsWith("/pokesleep-tool/iv/") ?
+        window.location.pathname.startsWith("/jibunyou-pokesuri-tool/iv/") ?
         "IvCalc" : "ResearchCalc");
 
     const { t, i18n } = useTranslation();
@@ -139,7 +139,7 @@ function useRouter(language: string): [AppType, (v:AppType) => void] {
         }
 
         // update URL
-        let url = document.location.origin + "/pokesleep-tool/";
+        let url = document.location.origin + "/jibunyou-pokesuri-tool/";
         if (currentApp === "IvCalc") {
             url += 'iv/';
         }

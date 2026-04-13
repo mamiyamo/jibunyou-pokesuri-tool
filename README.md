@@ -1,7 +1,7 @@
 # Calc Tools for Pokémon Sleep
 
-- [IV Calc](https://nitoyon.github.io/pokesleep-tool/iv/)
-- [Research Calc](https://nitoyon.github.io/pokesleep-tool/)
+- [IV Calc](https://mamiyamo.github.io/jibunyou-pokesuri-tool/iv/)
+- [Research Calc](https://mamiyamo.github.io/jibunyou-pokesuri-tool/)
 
 Feel free to [contribute](CONTRIBUTING.md)!
 

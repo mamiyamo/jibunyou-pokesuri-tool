@@ -33,7 +33,7 @@ This project is licensed under the MIT License.
 The app uses a **dual-app architecture** with client-side routing:
 - `src/ui/App.tsx` - Root component that switches between ResearchCalc and IvCalc based on URL path
 - `src/index.tsx` - Entry point handling i18n initialization, error handlers, and PWA setup
-- URL-based routing: `/pokesleep-tool/` → Research Calc, `/pokesleep-tool/iv/` → IV Calc
+- URL-based routing: `/jibunyou-pokesuri-tool/` → Research Calc, `/jibunyou-pokesuri-tool/iv/` → IV Calc
 
 ### Two Main Applications
 
