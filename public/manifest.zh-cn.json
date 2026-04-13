@@ -13,7 +13,7 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": "./index.zh-cn.html?utm_source=homescreen",
+  "start_url": "./index.zh-cn.html",
   "display": "standalone",
   "theme_color": "#f9f9f9",
   "background_color": "#ffffff"

@@ -1,5 +1,5 @@
 const BASE_URL = '/pokesleep-tool/';
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const APP_CACHE = `pokesleep-tool-app-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `pokesleep-tool-runtime-${CACHE_VERSION}`;
 
@@ -102,12 +102,12 @@ async function networkFirst(request) {
         }
         return response;
     } catch {
-        const cached = await caches.match(request);
+        const cached = await caches.match(request, {ignoreSearch: true});
         if (cached !== undefined) {
             return cached;
         }
         if (request.mode === 'navigate') {
-            return (await caches.match(new URL('index.html', self.location.origin + BASE_URL).toString())) ??
+            return (await caches.match(new URL('index.html', self.location.origin + BASE_URL).toString(), {ignoreSearch: true})) ??
                 Response.error();
         }
         return Response.error();
