@@ -7,9 +7,10 @@ import RaderChart from './Chart/RaderChart';
 import { Button, Dialog, DialogActions, DialogTitle, DialogContent } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
-const RatingView = React.memo(({pokemonIv, width}: {
+const RatingView = React.memo(({pokemonIv, width, useSkillPity}: {
     pokemonIv: PokemonIv,
     width: number,
+    useSkillPity: boolean,
 }) => {
     const { t } = useTranslation();
     const [helpOpen, setHelpOpen] = React.useState(false);
@@ -21,7 +22,7 @@ const RatingView = React.memo(({pokemonIv, width}: {
     }, [setHelpOpen]);
 
     const rating = new PokemonRating(pokemonIv);
-    const result = rating.calculate();
+    const result = rating.calculate(useSkillPity);
 
     const raderHeight = 400;
 

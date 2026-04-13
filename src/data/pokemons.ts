@@ -43,6 +43,8 @@ export interface PokemonData {
     readonly ingRate: number;
     /** Rate for skill occurance. */
     readonly skillRate: number;
+    /** Skill pity ceiling for skill specialists. */
+    readonly skillPityCeiling?: number;
     /** Whether rate is not fixed or not */
     readonly rateNotFixed?: boolean;
     /** Ancestor pokemon id */

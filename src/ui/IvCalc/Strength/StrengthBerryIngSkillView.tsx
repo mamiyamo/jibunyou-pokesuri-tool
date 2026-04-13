@@ -9,7 +9,7 @@ import PokemonStrength, {
 } from '../../../util/PokemonStrength';
 import { StrengthParameter } from '../../../util/PokemonStrength';
 import { AmountOfSleep } from '../../../util/TimeUtil';
-import { Dialog, Select, SelectChangeEvent, MenuItem } from '@mui/material';
+import { Dialog, Select, SelectChangeEvent, MenuItem, Switch } from '@mui/material';
 import MainSkillIcon from '../MainSkillIcon';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import InfoButton from '../InfoButton';
@@ -224,6 +224,12 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
     const onEfficiencyDialogClose = React.useCallback(() => {
         dispatch({type: "closeEnergyDialog"});
     }, [dispatch]);
+    const onUseSkillPityChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        dispatch({type: "changeParameter", payload: {parameter: {
+            ...settings,
+            useSkillPity: e.target.checked,
+        }}});
+    }, [dispatch, settings]);
 
     // format berry value
     const berryStrength = formatWithComma(Math.round(result.berryTotalStrength));
@@ -298,6 +304,13 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
             <footer>
                 <div>{round1(result.skillRate * 100)}%</div>
                 <div>{round2(result.skillCount)}{t('times unit')}</div>
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '.15rem'}}>
+                    <span>天井回数: {pokemonIv.skillPityCeiling}</span>
+                    <span>天井考慮</span>
+                    <Switch size="small" aria-label="天井を考慮する"
+                        checked={settings.useSkillPity}
+                        onChange={onUseSkillPityChange}/>
+                </div>
             </footer>
         </section>
         {settings.period > whistlePeriod && <footer>

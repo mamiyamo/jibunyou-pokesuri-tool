@@ -164,6 +164,48 @@ class PokemonIv {
         });
     }
 
+    /**
+     * Get the number of helps before the skill pity ceiling triggers.
+     *
+     * The ceiling is stored in pokemon data and defaults to 78.
+     */
+    get skillPityCeiling(): number {
+        return this.getOrCache('skillPityCeiling', () => {
+            if (this.pokemon.skillPityCeiling !== undefined) {
+                return this.pokemon.skillPityCeiling;
+            }
+            return 78;
+        });
+    }
+
+    /**
+     * Get the skill trigger rate adjusted by the pity ceiling.
+     *
+     * @param skillTriggerBonus Optional multiplier applied before pity.
+     * @param usePity Whether to apply the pity ceiling adjustment.
+     * @returns Ceiling-adjusted skill trigger probability.
+     */
+    getSkillRateWithPity(skillTriggerBonus: number = 1, usePity: boolean = false): number {
+        return this.getOrCache(`skillRateWithPity:${skillTriggerBonus}:${usePity}`, () => {
+            const rate = this.skillRate * skillTriggerBonus;
+            if (rate <= 0) {
+                return 0;
+            }
+
+            if (!usePity) {
+                return rate;
+            }
+
+            const ceiling = this.skillPityCeiling;
+            if (ceiling <= 0) {
+                return rate;
+            }
+
+            const missRate = Math.pow(1 - rate, ceiling);
+            return rate / (1 - missRate);
+        });
+    }
+
     get ingredientRate(): number {
         return this.getOrCache('ingredientRate', () => {
             return trunc(

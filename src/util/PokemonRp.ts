@@ -117,13 +117,17 @@ class PokemonRp {
         return value;
     }
 
-    calculate(): RpStrengthResult {
+    calculate(useSkillPity: boolean = false): RpStrengthResult {
         const frequency = this.frequency;
         const bonus = this.bonus;
         const ingredientRp = this.ingredientRp;
         const berryRp = this.berryRp;
-        const skillRp = this.skillRp;
-        const rp = this.Rp;
+        const skillRp = this.skillRp(useSkillPity);
+        const rp = Math.round((
+            multiplyBy100(ingredientRp) +
+            multiplyBy100(berryRp) +
+            multiplyBy100(skillRp)
+        ) * multiplyBy100(bonus) / 10000);
 
         return {
             rp, frequency,
@@ -139,7 +143,7 @@ class PokemonRp {
             return Math.round((
                 multiplyBy100(this.ingredientRp) +
                 multiplyBy100(this.berryRp) +
-                multiplyBy100(this.skillRp)
+                multiplyBy100(this.skillRp())
             ) * multiplyBy100(this.bonus) / 10000);
         });
     }
@@ -297,10 +301,11 @@ class PokemonRp {
         });
     }
 
-    get skillRp(): number {
-        return this.getOrCache('skillRp', () => {
+    skillRp(useSkillPity: boolean = false): number {
+        return this.getOrCache(`skillRp:${useSkillPity}`, () => {
             return trunc(
-                this.helpCountPer5Hour * this.iv.skillRate * this.skillValue,
+                this.helpCountPer5Hour * this.iv.getSkillRateWithPity(1, useSkillPity) *
+                this.skillValue,
                 2);
         });
     }

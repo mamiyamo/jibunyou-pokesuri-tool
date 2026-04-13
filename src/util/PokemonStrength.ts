@@ -64,6 +64,9 @@ export const expertNonFavoriteBerrySpeedPenalty = 0.15;
  * Represents the parameter of PokemonStrength.calc.
  */
 export interface StrengthParameter extends EnergyParameter {
+    /** Whether skill pity ceiling is considered */
+    useSkillPity: boolean;
+
     /** Field bonus */
     fieldBonus: number;
 
@@ -1031,6 +1034,7 @@ export function createStrengthParameter(
     const defaultParameters: StrengthParameter = {
         period: 24,
         fieldBonus: 0,
+        useSkillPity: false,
         fieldIndex: noFavoriteFieldIndex,
         favoriteType: ["normal", "fire", "water"],
         helpBonusCount: 0,
@@ -1307,6 +1311,9 @@ export function loadStrengthParameter(): StrengthParameter {
         Math.floor(json.helpBonusCount) === json.helpBonusCount &&
         json.helpBonusCount >= 0 && json.helpBonusCount <= 4) {
         ret.helpBonusCount = json.helpBonusCount;
+    }
+    if (typeof(json.useSkillPity) === "boolean") {
+        ret.useSkillPity = json.useSkillPity;
     }
     if (typeof(json.isGoodCampTicketSet) === "boolean") {
         ret.isGoodCampTicketSet = json.isGoodCampTicketSet;

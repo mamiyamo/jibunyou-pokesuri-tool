@@ -34,7 +34,7 @@ class PokemonRating {
         this.rp = new PokemonRp(pokemonIv);
     }
 
-    calculate(): RatingStrengthResult {
+    calculate(useSkillPity: boolean = false): RatingStrengthResult {
         if (this.pokemon.frequency === 0) {
             return {
                 berryScore: 0, berryMax: 0, berryCur: 0, berryRate: 0,
@@ -96,11 +96,12 @@ class PokemonRating {
         const ingScore = ingCur / ingMax * 100;
         const ingRate = this.rp.iv.ingredientRate;
 
-        const skillCalc = (rp: PokemonRp) => (3600 / rp.iv.frequencyWithHelpingBonus(0)) * rp.iv.skillRate;
+        const skillCalc = (rp: PokemonRp) =>
+            (3600 / rp.iv.frequencyWithHelpingBonus(0)) * rp.iv.getSkillRateWithPity(1, useSkillPity);
         const skillMax = skillCalc(skillMaxRp);
         const skillCur = skillCalc(this.rp);
         const skillScore = skillCur / skillMax * 100;
-        const skillRate = this.rp.iv.skillRate;
+        const skillRate = this.rp.iv.getSkillRateWithPity(1, useSkillPity);
         return {
             berryScore, berryMax, berryCur, berryRate,
             ingScore, ingMax, ingCur, ingRate,

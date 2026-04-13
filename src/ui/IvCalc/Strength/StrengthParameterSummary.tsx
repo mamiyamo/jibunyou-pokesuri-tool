@@ -16,9 +16,10 @@ import { Button, IconButton, MenuItem } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useTranslation } from 'react-i18next';
 
-const StrengthParameterSummary = React.memo(({state, dispatch}: {
+const StrengthParameterSummary = React.memo(({state, dispatch, onOpenPokedayTable}: {
     state: IvState,
     dispatch: React.Dispatch<IvAction>,
+    onOpenPokedayTable: () => void,
 }) => {
     const { t } = useTranslation();
     const [areaDialogOpen, setAreaDialogOpen] = React.useState(false);
@@ -116,6 +117,9 @@ const StrengthParameterSummary = React.memo(({state, dispatch}: {
     return (<StrengthParameterPreview>
             <span className="edit">
                 <Button onClick={onEditClick} size="small">{t('details')}</Button>
+            </span>
+            <span>
+                <Button onClick={onOpenPokedayTable} size="small">ポケ日算</Button>
             </span>
             <span>
                 <TextLikeButton onClick={onAreaClick}>

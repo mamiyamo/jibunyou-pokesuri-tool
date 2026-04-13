@@ -50,6 +50,9 @@ export interface EnergyParameter {
      */
     recoveryBonusCount: 0|1|2|3|4;
 
+    /** Whether skill pity ceiling is considered */
+    useSkillPity: boolean;
+
     /**
      * If true, we assume that energy is always 100.
      */
@@ -141,7 +144,7 @@ export type EnergyResult = {
     },
     /** Carry limit */
     carryLimit: number,
-    /** Skill rate */
+    /** Skill rate after pity ceiling adjustment */
     skillRate: number,
     /** Help count */
     helpCount: {
@@ -680,7 +683,7 @@ class Energy {
 
         const skillProbabilityAfterWakeup = {once: 0, twice: 0};
         const lotteryCount = asleepNotFull;
-        const skillRate = rp.iv.skillRate * bonus.skillTrigger;
+        const skillRate = rp.iv.getSkillRateWithPity(bonus.skillTrigger, param.useSkillPity);
         if (lotteryCount > 0) {
             const skillNone = Math.pow(1 - skillRate, lotteryCount);
             if (this._iv.pokemon.specialty !== 'Skills' &&

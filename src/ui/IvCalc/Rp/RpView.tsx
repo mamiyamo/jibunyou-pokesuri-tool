@@ -42,12 +42,13 @@ const RpView = React.memo(({state, width}: {state: IvState, width: number}) => {
 
     const pokemonIv = state.pokemonIv;
     const rp = new PokemonRp(pokemonIv);
-    const rpResult: RpStrengthResult = rp.calculate();
+    const rpResult: RpStrengthResult = rp.calculate(state.parameter.useSkillPity);
 
     // calculate using default config (note that we copy `mew` config
     // because RateNotFixedDialog is shown in RpView for Mew)
     const strengthParameter: StrengthParameter = createStrengthParameter({
         helpBonusCount: pokemonIv.hasHelpingBonusInActiveSubSkills ? 1 : 0,
+        useSkillPity: state.parameter.useSkillPity,
         mew: {...state.parameter.mew},
     });
     const strength = new PokemonStrength(pokemonIv, strengthParameter).calculate();
