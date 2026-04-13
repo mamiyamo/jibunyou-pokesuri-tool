@@ -31,20 +31,6 @@ function formatDays(value: number): string {
     return value.toFixed(1);
 }
 
-function formatHoursMinutesFromDays(value: number): string {
-    const totalMinutes = Math.round(value * 24 * 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${hours}時間${minutes}分`;
-}
-
-function formatDaysParts(value: number): {days: string; time: string} {
-    return {
-        days: `${formatDays(value)}日`,
-        time: formatHoursMinutesFromDays(value),
-    };
-}
-
 function formatDailyCount(value: number): string {
     return value.toFixed(1);
 }
@@ -266,7 +252,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             const dailyCount = dailyDetail?.total ?? 0;
                             const days = dailyCount > 0 ? ingredient.count / dailyCount : null;
                             if (days !== null) {
-                                totalDays = totalDays === null ? days : Math.max(totalDays, days);
+                                totalDays = totalDays === null ? days : totalDays + days;
                             }
                             const perPokemon = selectedTeamItems.map(item => {
                                 const detail = selectedTeamDetailMap[item.id]?.[ingredient.name] ??
@@ -285,23 +271,13 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                             最終エナジー: {formatWithComma(finalEnergy)}
                                         </Typography>
                                         <Stack direction={isSmallScreen ? 'column' : 'row'} spacing={0.2}>
-                                            <Typography variant="body2">必要日数:</Typography>
+                                            <Typography variant="body2">合計稼働時間／1食あたり:</Typography>
                                             {totalDays === null ? (
                                                 <Typography variant="body2">ー</Typography>
                                             ) : (
-                                                <Stack spacing={0} alignItems="flex-start">
-                                                    {(() => {
-                                                        const parts = formatDaysParts(totalDays);
-                                                        return <>
-                                                            <Typography variant="body2" sx={{lineHeight: 1.1}}>
-                                                                {parts.days}
-                                                            </Typography>
-                                                            <Typography variant="body2" sx={{lineHeight: 1.1}}>
-                                                                {parts.time}
-                                                            </Typography>
-                                                        </>;
-                                                    })()}
-                                                </Stack>
+                                                <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                                    {formatDays(totalDays)}日
+                                                </Typography>
                                             )}
                                         </Stack>
                                     </Stack>
