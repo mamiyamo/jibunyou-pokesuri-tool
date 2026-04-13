@@ -28,7 +28,7 @@ function recipeKey(recipe: PokedayRecipe): string {
 }
 
 function formatDays(value: number): string {
-    return value.toFixed(2);
+    return value.toFixed(1);
 }
 
 function formatHoursMinutesFromDays(value: number): string {
@@ -46,7 +46,7 @@ function formatDaysParts(value: number): {days: string; time: string} {
 }
 
 function formatDailyCount(value: number): string {
-    return value.toFixed(2);
+    return value.toFixed(1);
 }
 
 function formatDailyDetail(value: PokedayIngredientDailyDetail): string {
