@@ -35,3 +35,12 @@ Runs unit tests.
 ## License
 
 MIT
+
+## Credits
+
+This project is based on `pokesleep-tool` by nitoyon.
+
+Original repository:
+https://github.com/nitoyon/pokesleep-tool
+
+This fork includes modifications made by me.
