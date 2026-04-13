@@ -420,8 +420,15 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                     <Table size="small" sx={{minWidth: isSmallScreen ? 620 : '100%'}}>
                                         <TableHead>
                                             <TableRow>
-                                                <TableCell>食材</TableCell>
-                                                <TableCell align="right">必要数</TableCell>
+                                                <TableCell sx={{px: isSmallScreen ? 0.75 : 2, width: isSmallScreen ? 44 : 'auto'}}>
+                                                    食材
+                                                </TableCell>
+                                                <TableCell
+                                                    align="right"
+                                                    sx={{px: isSmallScreen ? 0.75 : 2, width: isSmallScreen ? 64 : 'auto'}}
+                                                >
+                                                    必要数
+                                                </TableCell>
                                                 <TableCell align="right">24h個数(食材+スキル)</TableCell>
                                                 <TableCell align="right">必要日数</TableCell>
                                                 {showEnergyDetails && <>
@@ -432,11 +439,16 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                         </TableHead>
                                         <TableBody>
                                             {ingredientRows.map(row => <TableRow key={`${recipeId}:${row.ingredient.name}`}>
-                                                <TableCell>
+                                                <TableCell sx={{px: isSmallScreen ? 0.75 : 2, width: isSmallScreen ? 44 : 'auto'}}>
                                                     <IngredientIcon name={row.ingredient.name} />
                                                 </TableCell>
-                                                <TableCell align="right">{formatWithComma(row.ingredient.count)}</TableCell>
-                                                <TableCell align="right">
+                                                <TableCell
+                                                    align="right"
+                                                    sx={{px: isSmallScreen ? 0.75 : 2, width: isSmallScreen ? 64 : 'auto'}}
+                                                >
+                                                    {formatWithComma(row.ingredient.count)}
+                                                </TableCell>
+                                                <TableCell align="right" sx={{px: isSmallScreen ? 0.75 : 2}}>
                                                     {selectedTeamItems.length === 0 || row.dailyCount <= 0 ?
                                                         'ー' :
                                                         <Stack spacing={0.2} alignItems="flex-end">
@@ -461,12 +473,16 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             </Typography>
                                                         </Stack>}
                                                 </TableCell>
-                                                <TableCell align="right">
+                                                <TableCell align="right" sx={{px: isSmallScreen ? 0.75 : 2}}>
                                                     {row.days === null ? 'ー' : formatDaysWithTime(row.days)}
                                                 </TableCell>
                                                 {showEnergyDetails && <>
-                                                    <TableCell align="right">{formatWithComma(recipe.baseEnergy)}</TableCell>
-                                                    <TableCell align="right">{formatWithComma(displayEnergy)}</TableCell>
+                                                    <TableCell align="right" sx={{px: isSmallScreen ? 0.75 : 2}}>
+                                                        {formatWithComma(recipe.baseEnergy)}
+                                                    </TableCell>
+                                                    <TableCell align="right" sx={{px: isSmallScreen ? 0.75 : 2}}>
+                                                        {formatWithComma(displayEnergy)}
+                                                    </TableCell>
                                                 </>}
                                             </TableRow>)}
                                         </TableBody>
