@@ -553,7 +553,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 </Stack>;
                                                             })}
                                                             <Typography variant="caption" sx={{fontWeight: 'bold', lineHeight: 1}}>
-                                                                合計 {formatDailyDetail(row.dailyDetail)}
+                                                                合計 {formatDailyTotal(row.dailyDetail)}
                                                             </Typography>
                                                         </Stack>}
                                                 </TableCell>
