@@ -438,6 +438,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                     maxWidth: '100%',
                                 }}>
                                     <Table size="small" sx={{
+                                        width: '100%',
                                         minWidth: isSmallScreen ? 460 : '100%',
                                         tableLayout: isSmallScreen ? 'fixed' : 'auto',
                                     }}>
@@ -502,6 +503,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         px: isSmallScreen ? 0.2 : 2,
                                                         width: isSmallScreen ? 86 : 'auto',
                                                         overflow: 'hidden',
+                                                        whiteSpace: 'nowrap',
                                                     }}
                                                 >
                                                     {selectedTeamItems.length === 0 || row.dailyCount <= 0 ?
@@ -531,7 +533,11 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
-                                                    sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 56 : 'auto'}}
+                                                    sx={{
+                                                        px: isSmallScreen ? 0.2 : 2,
+                                                        width: isSmallScreen ? 56 : 'auto',
+                                                        whiteSpace: 'nowrap',
+                                                    }}
                                                 >
                                                     {row.days === null ? 'ー' : (
                                                         <Stack spacing={0} alignItems="flex-end">
