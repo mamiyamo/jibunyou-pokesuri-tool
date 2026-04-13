@@ -741,10 +741,10 @@
 
         "select subskill at level xxx": "請選擇 <level/> 的副技能",
 
-        "about1": "本工具非官方工具，由 <profile>nitoyon</profile> 個人開發。",
-        "profile": "http://tech.nitoyon.com/ja/about/",
+        "about1": "本工具是以 <profile>nitoyon 的 pokesleep-tool</profile> 為基礎的非官方個人修改版。",
+        "profile": "https://github.com/nitoyon/pokesleep-tool",
         "x username": "nitoyon1",
-        "about2": "如有改進請求和錯誤報告，請將其發送至 X (twitter) 上的 <x>@nitoyon1</x> 或 <github>GitHub</github> 。",
+        "about2": "如有改進請求和錯誤報告，請透過本分支的 <github>GitHub Discussions</github> 或 Issues 聯絡。",
         "about3": "使用的數據參考 「<wiki>ポケモンスリープ攻略・検証Wiki</wiki>」，「<rp>RP collection project</rp>」，以及「<raenonx>RaenonX</raenonx>」。",
         "about4": "食材圖標由ちゃんりわさん創作。",
 

@@ -751,10 +751,10 @@
 
         "select subskill at level xxx": "Select sub skill at <level/>",
 
-        "about1": "This tool is an unofficial tool developed by <profile>nitoyon</profile>.",
-        "profile": "http://tech.nitoyon.com/en/about/",
+        "about1": "This tool is an unofficial fork based on <profile>nitoyon's pokesleep-tool</profile>.",
+        "profile": "https://github.com/nitoyon/pokesleep-tool",
         "x username": "nitoyon1",
-        "about2": "If you have bug reports or improvement suggestions, please contact X (twitter) <x>@nitoyon1</x> or <github>GitHub repository</github>.",
+        "about2": "If you have bug reports or improvement suggestions, please use this fork's <github>GitHub Discussions</github> or Issues.",
         "about3": "I am referring to the data from '<wiki>ポケモンスリープ攻略・検証Wiki</wiki>', '<rp>RP collection project</rp>' and '<raenonx>RaenonX</raenonx>'.",
         "about4": "The ingredient icon was created by ちゃんりわ.",
 
