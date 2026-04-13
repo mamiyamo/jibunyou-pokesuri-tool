@@ -437,17 +437,20 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                     WebkitOverflowScrolling: 'touch',
                                     maxWidth: '100%',
                                 }}>
-                                    <Table size="small" sx={{minWidth: isSmallScreen ? 540 : '100%'}}>
+                                    <Table size="small" sx={{
+                                        minWidth: isSmallScreen ? 460 : '100%',
+                                        tableLayout: isSmallScreen ? 'fixed' : 'auto',
+                                    }}>
                                         <TableHead>
                                             <TableRow>
-                                                <TableCell sx={{px: isSmallScreen ? 0.25 : 2, width: isSmallScreen ? 32 : 'auto'}}>
+                                                <TableCell sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 28 : 'auto'}}>
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
                                                         食材
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
-                                                    sx={{px: isSmallScreen ? 0.25 : 2, width: isSmallScreen ? 52 : 'auto'}}
+                                                    sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 44 : 'auto'}}
                                                 >
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
                                                         必要数
@@ -455,7 +458,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
-                                                    sx={{px: isSmallScreen ? 0.25 : 2, width: isSmallScreen ? 96 : 'auto'}}
+                                                    sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 86 : 'auto'}}
                                                 >
                                                     <Stack spacing={0} sx={{lineHeight: 1}}>
                                                         <Typography variant="caption" sx={{lineHeight: 1}}>
@@ -466,7 +469,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         </Typography>
                                                     </Stack>
                                                 </TableCell>
-                                                <TableCell align="right" sx={{px: isSmallScreen ? 0.25 : 2, width: isSmallScreen ? 64 : 'auto'}}>
+                                                <TableCell align="right" sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 56 : 'auto'}}>
                                                     <Stack spacing={0} alignItems="flex-end">
                                                         <Typography variant="caption" sx={{lineHeight: 1}}>
                                                             必要
@@ -484,22 +487,26 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                         </TableHead>
                                         <TableBody>
                                             {ingredientRows.map(row => <TableRow key={`${recipeId}:${row.ingredient.name}`}>
-                                                <TableCell sx={{px: isSmallScreen ? 0.25 : 2, width: isSmallScreen ? 32 : 'auto'}}>
+                                                <TableCell sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 28 : 'auto'}}>
                                                     <IngredientIcon name={row.ingredient.name} />
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
-                                                    sx={{px: isSmallScreen ? 0.25 : 2, width: isSmallScreen ? 52 : 'auto'}}
+                                                    sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 44 : 'auto'}}
                                                 >
                                                     {formatWithComma(row.ingredient.count)}
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
-                                                    sx={{px: isSmallScreen ? 0.25 : 2, width: isSmallScreen ? 96 : 'auto'}}
+                                                    sx={{
+                                                        px: isSmallScreen ? 0.2 : 2,
+                                                        width: isSmallScreen ? 86 : 'auto',
+                                                        overflow: 'hidden',
+                                                    }}
                                                 >
                                                     {selectedTeamItems.length === 0 || row.dailyCount <= 0 ?
                                                         'ー' :
-                                                        <Stack spacing={0} alignItems="flex-end">
+                                                        <Stack spacing={0} alignItems="flex-end" sx={{minWidth: 0, overflow: 'hidden'}}>
                                                             {row.perPokemon.map(({item, detail}) => {
                                                                 if (detail.total <= 0) {
                                                                     return null;
@@ -507,11 +514,12 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 return <Stack
                                                                     key={`${recipeId}:${row.ingredient.name}:${item.id}`}
                                                                     direction="row"
-                                                                    spacing={0.15}
+                                                                    spacing={0.1}
                                                                     alignItems="center"
+                                                                    sx={{minWidth: 0}}
                                                                 >
                                                                     <PokemonIcon idForm={item.iv.idForm} size={16}/>
-                                                                    <Typography variant="caption">
+                                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
                                                                         {formatDailyDetail(detail)}
                                                                     </Typography>
                                                                 </Stack>;
@@ -523,17 +531,17 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
-                                                    sx={{px: isSmallScreen ? 0.25 : 2, width: isSmallScreen ? 64 : 'auto'}}
+                                                    sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 56 : 'auto'}}
                                                 >
                                                     {row.days === null ? 'ー' : (
                                                         <Stack spacing={0} alignItems="flex-end">
                                                             {(() => {
                                                                 const parts = formatDaysParts(row.days);
                                                                 return <>
-                                                                    <Typography variant="caption" sx={{lineHeight: 1.1}}>
+                                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
                                                                         {parts.days}
                                                                     </Typography>
-                                                                    <Typography variant="caption" sx={{lineHeight: 1.1}}>
+                                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
                                                                         {parts.time}
                                                                     </Typography>
                                                                 </>;
