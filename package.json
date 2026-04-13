@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
-  "homepage": "https://nitoyon.github.io/pokesleep-tool/",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
