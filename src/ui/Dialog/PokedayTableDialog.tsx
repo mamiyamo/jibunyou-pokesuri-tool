@@ -438,20 +438,30 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                     maxWidth: '100%',
                                 }}>
                                     <Table size="small" sx={{
-                                        width: '100%',
-                                        minWidth: isSmallScreen ? 460 : '100%',
+                                        width: isSmallScreen ? 'fit-content' : '100%',
+                                        minWidth: isSmallScreen ? 0 : '100%',
                                         tableLayout: isSmallScreen ? 'fixed' : 'auto',
                                     }}>
                                         <TableHead>
                                             <TableRow>
-                                                <TableCell sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 28 : 'auto'}}>
+                                                <TableCell sx={{
+                                                    px: isSmallScreen ? 0 : 2,
+                                                    pl: isSmallScreen ? 0 : 2,
+                                                    pr: isSmallScreen ? 0.25 : 2,
+                                                    width: isSmallScreen ? 24 : 'auto',
+                                                }}>
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
                                                         食材
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
-                                                    sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 44 : 'auto'}}
+                                                    sx={{
+                                                        px: isSmallScreen ? 0 : 2,
+                                                        pl: isSmallScreen ? 0.1 : 2,
+                                                        pr: isSmallScreen ? 0.1 : 2,
+                                                        width: isSmallScreen ? 36 : 'auto',
+                                                    }}
                                                 >
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
                                                         必要数
@@ -459,7 +469,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
-                                                    sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 86 : 'auto'}}
+                                                    sx={{
+                                                        px: isSmallScreen ? 0.1 : 2,
+                                                        width: isSmallScreen ? 72 : 'auto',
+                                                    }}
                                                 >
                                                     <Stack spacing={0} sx={{lineHeight: 1}}>
                                                         <Typography variant="caption" sx={{lineHeight: 1}}>
@@ -470,7 +483,13 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         </Typography>
                                                     </Stack>
                                                 </TableCell>
-                                                <TableCell align="right" sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 56 : 'auto'}}>
+                                                <TableCell
+                                                    align="right"
+                                                    sx={{
+                                                        px: isSmallScreen ? 0.1 : 2,
+                                                        width: isSmallScreen ? 52 : 'auto',
+                                                    }}
+                                                >
                                                     <Stack spacing={0} alignItems="flex-end">
                                                         <Typography variant="caption" sx={{lineHeight: 1}}>
                                                             必要
@@ -488,20 +507,30 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                         </TableHead>
                                         <TableBody>
                                             {ingredientRows.map(row => <TableRow key={`${recipeId}:${row.ingredient.name}`}>
-                                                <TableCell sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 28 : 'auto'}}>
+                                                <TableCell sx={{
+                                                    px: isSmallScreen ? 0 : 2,
+                                                    pl: isSmallScreen ? 0 : 2,
+                                                    pr: isSmallScreen ? 0.25 : 2,
+                                                    width: isSmallScreen ? 24 : 'auto',
+                                                }}>
                                                     <IngredientIcon name={row.ingredient.name} />
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
-                                                    sx={{px: isSmallScreen ? 0.2 : 2, width: isSmallScreen ? 44 : 'auto'}}
+                                                    sx={{
+                                                        px: isSmallScreen ? 0 : 2,
+                                                        pl: isSmallScreen ? 0.1 : 2,
+                                                        pr: isSmallScreen ? 0.1 : 2,
+                                                        width: isSmallScreen ? 36 : 'auto',
+                                                    }}
                                                 >
                                                     {formatWithComma(row.ingredient.count)}
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"
                                                     sx={{
-                                                        px: isSmallScreen ? 0.2 : 2,
-                                                        width: isSmallScreen ? 86 : 'auto',
+                                                        px: isSmallScreen ? 0.1 : 2,
+                                                        width: isSmallScreen ? 72 : 'auto',
                                                         overflow: 'hidden',
                                                         whiteSpace: 'nowrap',
                                                     }}
@@ -534,8 +563,8 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 <TableCell
                                                     align="right"
                                                     sx={{
-                                                        px: isSmallScreen ? 0.2 : 2,
-                                                        width: isSmallScreen ? 56 : 'auto',
+                                                        px: isSmallScreen ? 0.1 : 2,
+                                                        width: isSmallScreen ? 52 : 'auto',
                                                         whiteSpace: 'nowrap',
                                                     }}
                                                 >
