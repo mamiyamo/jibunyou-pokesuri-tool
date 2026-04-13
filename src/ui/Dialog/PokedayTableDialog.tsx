@@ -542,19 +542,9 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     }}
                                                 >
                                                     {row.days === null ? 'ー' : (
-                                                        <Stack spacing={0} alignItems="flex-end">
-                                                            {(() => {
-                                                                const parts = formatDaysParts(row.days);
-                                                                return <>
-                                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                        {parts.days}
-                                                                    </Typography>
-                                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                        {parts.time}
-                                                                    </Typography>
-                                                                </>;
-                                                            })()}
-                                                        </Stack>
+                                                        <Typography variant="caption" sx={{lineHeight: 1, whiteSpace: 'nowrap'}}>
+                                                            {formatDays(row.days)}日
+                                                        </Typography>
                                                     )}
                                                 </TableCell>
                                                 {showEnergyDetails && <>
