@@ -448,7 +448,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     px: isSmallScreen ? 0 : 2,
                                                     pl: isSmallScreen ? 0 : 2,
                                                     pr: isSmallScreen ? 0.25 : 2,
-                                                    width: isSmallScreen ? 24 : 'auto',
+                                                    width: isSmallScreen ? 30 : 'auto',
                                                 }}>
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
                                                         食材
@@ -460,7 +460,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         px: isSmallScreen ? 0 : 2,
                                                         pl: isSmallScreen ? 0.1 : 2,
                                                         pr: isSmallScreen ? 0.1 : 2,
-                                                        width: isSmallScreen ? 36 : 'auto',
+                                                        width: isSmallScreen ? 40 : 'auto',
                                                     }}
                                                 >
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
@@ -471,7 +471,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     align="right"
                                                     sx={{
                                                         px: isSmallScreen ? 0.1 : 2,
-                                                        width: isSmallScreen ? 72 : 'auto',
+                                                        width: isSmallScreen ? 150 : 'auto',
                                                     }}
                                                 >
                                                     <Stack spacing={0} sx={{lineHeight: 1}}>
@@ -487,15 +487,12 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     align="right"
                                                     sx={{
                                                         px: isSmallScreen ? 0.1 : 2,
-                                                        width: isSmallScreen ? 52 : 'auto',
+                                                        width: isSmallScreen ? 70 : 'auto',
                                                     }}
                                                 >
                                                     <Stack spacing={0} alignItems="flex-end">
                                                         <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                            必要
-                                                        </Typography>
-                                                        <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                            日数
+                                                            必要日数
                                                         </Typography>
                                                     </Stack>
                                                 </TableCell>
