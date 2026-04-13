@@ -34,6 +34,8 @@ const StyledBerryIngSkillStrengthView = styled('div')({
         gridColumn: '1 / -1',
         display: 'flex',
         alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '.2rem',
         margin: '0 0.2rem',
         fontSize: '1.5rem',
         '& > span.strength': {
@@ -42,6 +44,16 @@ const StyledBerryIngSkillStrengthView = styled('div')({
         '& > span.evolved': {
             paddingLeft: '0.8rem',
             fontSize: '0.8rem',
+        },
+        '& > .skill-pity-control': {
+            marginLeft: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '.15rem',
+            flexWrap: 'wrap',
+            fontSize: '0.7rem',
+            color: '#666',
         },
     },
     '& > section': {
@@ -235,15 +247,8 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
         }}});
     }, [dispatch, settings]);
 
-    const skillPityControl = <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: '.15rem',
-        flexWrap: 'wrap',
-        fontSize: '0.7rem',
-        color: '#666',
-        padding: isSmallScreen ? '0 .5rem .2rem' : 0,
+    const skillPityControl = <div className="skill-pity-control" style={{
+        padding: isSmallScreen ? '0 .25rem' : 0,
     }}>
         <span>天井回数: {pokemonIv.skillPityCeiling}</span>
         <span>天井考慮</span>
@@ -278,6 +283,7 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
             <LocalFireDepartmentIcon sx={{color: "#ff944b"}}/>
             <span className="strength">{formatWithComma(Math.round(result.totalStrength))}</span>
             <InfoButton onClick={onHelpClick}/>
+            {skillPityControl}
             <TotalStrengthDialog param={settings} result={result} open={helpOpen}
                 dispatch={dispatch} onClose={onHelpClose}/>
             {decendants.length === 1 && <span className="evolved">
@@ -321,12 +327,10 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
             <h3 style={{background: '#44a2fd'}}>{t('skill')}
                 <InfoButton onClick={onSkillHelpClick}/>
             </h3>
-            {isSmallScreen && skillPityControl}
             {mainSkillArticle}
             <footer>
                 <div>{round1(result.skillRate * 100)}%</div>
                 <div>{round2(result.skillCount)}{t('times unit')}</div>
-                {!isSmallScreen && skillPityControl}
             </footer>
         </section>
         {settings.period > whistlePeriod && <footer>
