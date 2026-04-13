@@ -2,8 +2,11 @@
 import {
     Accordion, AccordionDetails, AccordionSummary, Button, Dialog, DialogActions,
     DialogContent, DialogTitle, FormControl, FormControlLabel, MenuItem, Paper, Select,
-    SelectChangeEvent, Stack, Switch, Table, TableBody, TableCell, TableHead, TableRow, Typography,
+    SelectChangeEvent, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead,
+    TableRow, Typography,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { IngredientName } from '../../data/pokemons';
 import { formatWithComma } from '../../util/NumberUtil';
@@ -83,6 +86,8 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     boxItems: PokemonBoxItem[];
 }) => {
     const { t } = useTranslation();
+    const theme = useTheme();
+    const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const [showEnergyDetails, setShowEnergyDetails] = React.useState(false);
     const [useHelpingBonus, setUseHelpingBonus] = React.useState(false);
     const [teamSelections, setTeamSelections] = React.useState<TeamSelectionMap>({});
@@ -188,9 +193,13 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         return <></>;
     }
 
-    return <Dialog open={open} onClose={onClose} fullWidth maxWidth="xl">
+    return <Dialog open={open} onClose={onClose} fullWidth maxWidth="xl"
+        fullScreen={isSmallScreen}>
         <DialogTitle>ポケ日算</DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{
+            px: isSmallScreen ? 1 : 3,
+            overflowX: 'hidden',
+        }}>
             <Typography sx={{mb: 1}} variant="body2">
                 料理の最終エナジーと、必要な食材を集めるのにかかる稼働時間を見ます。
             </Typography>
@@ -210,7 +219,11 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                 sx={{display: 'flex', mb: 1}}
             />
             {pokedayRecipeGroups.map(group => (
-                <Paper key={group.category} variant="outlined" sx={{p: 1.5, mb: 2}}>
+                <Paper key={group.category} variant="outlined" sx={{
+                    p: isSmallScreen ? 1 : 1.5,
+                    mb: 2,
+                    minWidth: 0,
+                }}>
                     <Typography variant="subtitle1" sx={{mb: 1}}>{group.title}</Typography>
                     {group.recipes.map(recipe => {
                         const recipeId = recipeKey(recipe);
@@ -316,15 +329,27 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     if (selected === null) {
                                                         return '未選択';
                                                     }
-                                                    return <Stack direction="row" spacing={0.8} alignItems="center">
+                                                    return <Stack
+                                                        direction={isSmallScreen ? 'column' : 'row'}
+                                                        spacing={0.6}
+                                                        alignItems={isSmallScreen ? 'flex-start' : 'center'}
+                                                        sx={{minWidth: 0, width: '100%'}}
+                                                    >
                                                         <PokemonIcon idForm={selected.iv.idForm} size={24}/>
                                                         <Typography
                                                             variant="body2"
+                                                            sx={{wordBreak: 'break-word'}}
                                                             title={createPokemonTooltipText(selected, t)}
                                                         >
                                                             {getDisplayName(selected, t)}
                                                         </Typography>
-                                                        <Stack direction="row" spacing={0.4} alignItems="center" flexWrap="wrap">
+                                                        <Stack
+                                                            direction="row"
+                                                            spacing={0.4}
+                                                            alignItems="center"
+                                                            flexWrap="wrap"
+                                                            sx={{minWidth: 0}}
+                                                        >
                                                             {recipe.ingredients.map(ingredient => {
                                                                 const detail = selectedTeamDetailMap[selected.id]?.[ingredient.name] ??
                                                                     {base: 0, skill: 0, total: 0};
@@ -387,60 +412,66 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                         </FormControl>;
                                     })}
                                 </Stack>
-                                <Table size="small">
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>食材</TableCell>
-                                            <TableCell align="right">必要数</TableCell>
-                                            <TableCell align="right">24h個数(食材+スキル)</TableCell>
-                                            <TableCell align="right">必要日数</TableCell>
-                                            {showEnergyDetails && <>
-                                                <TableCell align="right">基本エナジー</TableCell>
-                                                <TableCell align="right">表示エナジー</TableCell>
-                                            </>}
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {ingredientRows.map(row => <TableRow key={`${recipeId}:${row.ingredient.name}`}>
-                                            <TableCell>
-                                                <IngredientIcon name={row.ingredient.name} />
-                                            </TableCell>
-                                            <TableCell align="right">{formatWithComma(row.ingredient.count)}</TableCell>
-                                            <TableCell align="right">
-                                                {selectedTeamItems.length === 0 || row.dailyCount <= 0 ?
-                                                    'ー' :
-                                                    <Stack spacing={0.2} alignItems="flex-end">
-                                                        {row.perPokemon.map(({item, detail}) => {
-                                                            if (detail.total <= 0) {
-                                                                return null;
-                                                            }
-                                                            return <Stack
-                                                                key={`${recipeId}:${row.ingredient.name}:${item.id}`}
-                                                                direction="row"
-                                                                spacing={0.4}
-                                                                alignItems="center"
-                                                            >
-                                                                <PokemonIcon idForm={item.iv.idForm} size={20}/>
-                                                                <Typography variant="caption">
-                                                                    {formatDailyDetail(detail)}
-                                                                </Typography>
-                                                            </Stack>;
-                                                        })}
-                                                        <Typography variant="caption" sx={{fontWeight: 'bold'}}>
-                                                            合計 {formatDailyDetail(row.dailyDetail)}
-                                                        </Typography>
-                                                    </Stack>}
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                {row.days === null ? 'ー' : formatDaysWithTime(row.days)}
-                                            </TableCell>
-                                            {showEnergyDetails && <>
-                                                <TableCell align="right">{formatWithComma(recipe.baseEnergy)}</TableCell>
-                                                <TableCell align="right">{formatWithComma(displayEnergy)}</TableCell>
-                                            </>}
-                                        </TableRow>)}
-                                    </TableBody>
-                                </Table>
+                                <TableContainer sx={{
+                                    overflowX: 'auto',
+                                    WebkitOverflowScrolling: 'touch',
+                                    maxWidth: '100%',
+                                }}>
+                                    <Table size="small" sx={{minWidth: isSmallScreen ? 620 : '100%'}}>
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell>食材</TableCell>
+                                                <TableCell align="right">必要数</TableCell>
+                                                <TableCell align="right">24h個数(食材+スキル)</TableCell>
+                                                <TableCell align="right">必要日数</TableCell>
+                                                {showEnergyDetails && <>
+                                                    <TableCell align="right">基本エナジー</TableCell>
+                                                    <TableCell align="right">表示エナジー</TableCell>
+                                                </>}
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {ingredientRows.map(row => <TableRow key={`${recipeId}:${row.ingredient.name}`}>
+                                                <TableCell>
+                                                    <IngredientIcon name={row.ingredient.name} />
+                                                </TableCell>
+                                                <TableCell align="right">{formatWithComma(row.ingredient.count)}</TableCell>
+                                                <TableCell align="right">
+                                                    {selectedTeamItems.length === 0 || row.dailyCount <= 0 ?
+                                                        'ー' :
+                                                        <Stack spacing={0.2} alignItems="flex-end">
+                                                            {row.perPokemon.map(({item, detail}) => {
+                                                                if (detail.total <= 0) {
+                                                                    return null;
+                                                                }
+                                                                return <Stack
+                                                                    key={`${recipeId}:${row.ingredient.name}:${item.id}`}
+                                                                    direction="row"
+                                                                    spacing={0.4}
+                                                                    alignItems="center"
+                                                                >
+                                                                    <PokemonIcon idForm={item.iv.idForm} size={20}/>
+                                                                    <Typography variant="caption">
+                                                                        {formatDailyDetail(detail)}
+                                                                    </Typography>
+                                                                </Stack>;
+                                                            })}
+                                                            <Typography variant="caption" sx={{fontWeight: 'bold'}}>
+                                                                合計 {formatDailyDetail(row.dailyDetail)}
+                                                            </Typography>
+                                                        </Stack>}
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    {row.days === null ? 'ー' : formatDaysWithTime(row.days)}
+                                                </TableCell>
+                                                {showEnergyDetails && <>
+                                                    <TableCell align="right">{formatWithComma(recipe.baseEnergy)}</TableCell>
+                                                    <TableCell align="right">{formatWithComma(displayEnergy)}</TableCell>
+                                                </>}
+                                            </TableRow>)}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
                             </AccordionDetails>
                         </Accordion>;
                     })}
