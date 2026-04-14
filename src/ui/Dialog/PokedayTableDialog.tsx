@@ -3,7 +3,7 @@ import {
     Accordion, AccordionDetails, AccordionSummary, Button, Dialog, DialogActions,
     DialogContent, DialogTitle, FormControl, FormControlLabel, MenuItem, Paper, Select,
     SelectChangeEvent, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead,
-    TableRow, Typography,
+    TableRow, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -14,7 +14,7 @@ import { PokemonBoxItem } from '../../util/PokemonBox';
 import { StrengthParameter } from '../../util/PokemonStrength';
 import { loadBoxSortConfig, sortPokemonItems } from '../../util/PokemonBoxSort';
 import {
-    getDailyIngredientDetailMap, getRecipeDisplayEnergy, getRecipeFinalEnergy,
+    getDailyIngredientDetailMap, getRecipeFinalEnergy,
     pokedayRecipeGroups, PokedayIngredientDailyDetail, PokedayRecipe,
 } from '../../util/Pokeday';
 import { useTranslation } from 'react-i18next';
@@ -84,7 +84,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const { t } = useTranslation();
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-    const [showEnergyDetails, setShowEnergyDetails] = React.useState(false);
+    const [mealCount, setMealCount] = React.useState<1 | 3>(3);
     const [useHelpingBonus, setUseHelpingBonus] = React.useState(false);
     const [teamSelections, setTeamSelections] = React.useState<TeamSelectionMap>({});
     const [openSelectKey, setOpenSelectKey] = React.useState<string | null>(null);
@@ -166,8 +166,13 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         });
     }, [boxItems, baseDailyCountMap, open]);
 
-    const onShowEnergyDetailsClick = React.useCallback(() => {
-        setShowEnergyDetails(v => !v);
+    const onMealCountChange = React.useCallback((
+        _event: React.MouseEvent<HTMLElement>,
+        nextValue: 1 | 3 | null,
+    ) => {
+        if (nextValue !== null) {
+            setMealCount(nextValue);
+        }
     }, []);
     const onUseHelpingBonusChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setUseHelpingBonus(e.target.checked);
@@ -206,9 +211,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                 <br />
                 参照中の設定: レシピレベル {parameter.recipeLevel} / レシピボーナス {parameter.recipeBonus}% / フィールドボーナス {parameter.fieldBonus}%
             </Typography>
-            <Button onClick={onShowEnergyDetailsClick} variant="outlined" size="small" sx={{mb: 2}}>
-                {showEnergyDetails ? '基本/表示エナジーを隠す' : '基本/表示エナジーを表示'}
-            </Button>
             <FormControlLabel
                 control={<Switch checked={useHelpingBonus} onChange={onUseHelpingBonusChange} />}
                 label="おてつだいボーナス考慮"
@@ -245,7 +247,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             selectedTeamDetailMap[selectedItem.id] = getDetailMap(selectedItem, helpBonusCount);
                         }
                         const finalEnergy = getRecipeFinalEnergy(recipe, parameter);
-                        const displayEnergy = getRecipeDisplayEnergy(recipe, parameter);
                         let totalDays: number | null = null;
                         const ingredientRows = recipe.ingredients.map(ingredient => {
                             let base = 0;
@@ -277,15 +278,32 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                         <Typography variant="body2">
                                             最終エナジー: {formatWithComma(finalEnergy)}
                                         </Typography>
-                                        <Stack direction={isSmallScreen ? 'column' : 'row'} spacing={0.2}>
-                                            <Typography variant="body2">合計稼働時間／1食あたり:</Typography>
+                                        <Stack direction={isSmallScreen ? 'column' : 'row'} spacing={0.2} alignItems="center">
+                                            <Typography variant="body2">
+                                                合計稼働時間／{mealCount}食あたり:
+                                            </Typography>
                                             {totalDays === null ? (
                                                 <Typography variant="body2">ー</Typography>
                                             ) : (
                                                 <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
-                                                    {formatDays(totalDays)}日（{formatHoursMinutesFromDays(totalDays)}）
+                                                    {formatDays(totalDays * mealCount)}日（{formatHoursMinutesFromDays(totalDays * mealCount)}）
                                                 </Typography>
                                             )}
+                                            <ToggleButtonGroup
+                                                exclusive
+                                                size="small"
+                                                value={mealCount}
+                                                onChange={onMealCountChange}
+                                                aria-label="meal count"
+                                                sx={{ml: isSmallScreen ? 0 : 1}}
+                                            >
+                                                <ToggleButton value={1} aria-label="1 meal">
+                                                    1食
+                                                </ToggleButton>
+                                                <ToggleButton value={3} aria-label="3 meals">
+                                                    3食
+                                                </ToggleButton>
+                                            </ToggleButtonGroup>
                                         </Stack>
                                     </Stack>
                                 </Stack>
@@ -479,10 +497,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         </Typography>
                                                     </Stack>
                                                 </TableCell>
-                                                {showEnergyDetails && <>
-                                                    <TableCell align="right">基本エナジー</TableCell>
-                                                    <TableCell align="right">表示エナジー</TableCell>
-                                                </>}
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -559,14 +573,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         </Stack>
                                                     )}
                                                 </TableCell>
-                                                {showEnergyDetails && <>
-                                                    <TableCell align="right" sx={{px: isSmallScreen ? 0.75 : 2}}>
-                                                        {formatWithComma(recipe.baseEnergy)}
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{px: isSmallScreen ? 0.75 : 2}}>
-                                                        {formatWithComma(displayEnergy)}
-                                                    </TableCell>
-                                                </>}
                                             </TableRow>)}
                                         </TableBody>
                                     </Table>
