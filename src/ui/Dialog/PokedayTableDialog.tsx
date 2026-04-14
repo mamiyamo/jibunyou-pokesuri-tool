@@ -27,6 +27,8 @@ function recipeKey(recipe: PokedayRecipe): string {
     return `${recipe.category}:${recipe.name}`;
 }
 
+const BOX_SORT_CONFIG_CHANGED_EVENT = 'PstPokemonBoxSortConfigChanged';
+
 function formatDays(value: number): string {
     return value.toFixed(1);
 }
@@ -88,17 +90,35 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const [useHelpingBonus, setUseHelpingBonus] = React.useState(false);
     const [teamSelections, setTeamSelections] = React.useState<TeamSelectionMap>({});
     const [openSelectKey, setOpenSelectKey] = React.useState<string | null>(null);
+    const [sortConfigRevision, setSortConfigRevision] = React.useState(0);
     const pokedayParameter = React.useMemo(() => ({
         event: parameter.event,
         fieldIndex: parameter.fieldIndex,
         expertEffect: parameter.expertEffect,
-    }), [parameter.event, parameter.fieldIndex, parameter.expertEffect]);
+        useSkillPity: parameter.useSkillPity,
+    }), [parameter.event, parameter.fieldIndex, parameter.expertEffect, parameter.useSkillPity]);
     const detailCacheRef = React.useRef<Map<string, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>>>(
         new Map(),
     );
     React.useEffect(() => {
         detailCacheRef.current.clear();
-    }, [boxItems, pokedayParameter.event, pokedayParameter.fieldIndex, pokedayParameter.expertEffect]);
+    }, [boxItems, pokedayParameter.event, pokedayParameter.fieldIndex, pokedayParameter.expertEffect, pokedayParameter.useSkillPity]);
+    React.useEffect(() => {
+        const updateSortConfig = () => {
+            setSortConfigRevision(value => value + 1);
+        };
+        const onStorage = (event: StorageEvent) => {
+            if (event.key === 'PstPokemonBoxParam') {
+                updateSortConfig();
+            }
+        };
+        window.addEventListener(BOX_SORT_CONFIG_CHANGED_EVENT, updateSortConfig);
+        window.addEventListener('storage', onStorage);
+        return () => {
+            window.removeEventListener(BOX_SORT_CONFIG_CHANGED_EVENT, updateSortConfig);
+            window.removeEventListener('storage', onStorage);
+        };
+    }, []);
     const getDetailMap = React.useCallback((boxItem: PokemonBoxItem, helpBonusCount: number) => {
         const key = `${boxItem.id}:${helpBonusCount}`;
         const cached = detailCacheRef.current.get(key);
@@ -135,6 +155,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         return ret;
     }, [boxItems, ingredientNames, getDetailMap]);
     const sortedBoxItems = React.useMemo(() => {
+        void sortConfigRevision;
         const sortConfig = loadBoxSortConfig();
         const [sorted] = sortPokemonItems(
             boxItems,
@@ -146,7 +167,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
             t,
         );
         return sortConfig.descending ? sorted : [...sorted].reverse();
-    }, [boxItems, parameter, t]);
+    }, [boxItems, parameter, t, sortConfigRevision]);
 
     React.useEffect(() => {
         if (!open || boxItems.length === 0) {

@@ -261,7 +261,7 @@ export function createPokedayHelpParameterWith({
     baseParameter,
 }: {
     helpBonusCount: number;
-    baseParameter?: Pick<StrengthParameter, 'event'|'fieldIndex'|'expertEffect'>;
+    baseParameter?: Pick<StrengthParameter, 'event'|'fieldIndex'|'expertEffect'|'useSkillPity'>;
 }): StrengthParameter {
     const helpBonus = Math.max(0, Math.min(4, Math.floor(helpBonusCount))) as 0|1|2|3|4;
     return createStrengthParameter({
@@ -272,6 +272,7 @@ export function createPokedayHelpParameterWith({
         event: baseParameter?.event ?? 'none',
         fieldIndex: baseParameter?.fieldIndex ?? noFavoriteFieldIndex,
         expertEffect: baseParameter?.expertEffect ?? 'berry',
+        useSkillPity: baseParameter?.useSkillPity ?? false,
         helpBonusCount: helpBonus,
     });
 }
@@ -305,7 +306,7 @@ export function getDailyIngredientDetailMap(
     boxItem: PokemonBoxItem,
     options?: {
         helpBonusCount?: number;
-        parameter?: Pick<StrengthParameter, 'event'|'fieldIndex'|'expertEffect'>;
+        parameter?: Pick<StrengthParameter, 'event'|'fieldIndex'|'expertEffect'|'useSkillPity'>;
     }
 ): Partial<Record<IngredientName, PokedayIngredientDailyDetail>> {
     const helpBonusCount = options?.helpBonusCount ?? 0;

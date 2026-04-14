@@ -25,6 +25,8 @@ import MoreIcon from '@mui/icons-material/MoreVert';
 import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
 import { useTranslation } from 'react-i18next';
 
+const BOX_SORT_CONFIG_CHANGED_EVENT = 'PstPokemonBoxSortConfigChanged';
+
 const BoxView = React.memo(({items, iv, selectedId, parameter, dispatch}: {
     items: PokemonBoxItem[],
     iv: PokemonIv,
@@ -49,10 +51,12 @@ const BoxView = React.memo(({items, iv, selectedId, parameter, dispatch}: {
             descending: value.descending};
         setSortConfig(newValue);
         localStorage.setItem('PstPokemonBoxParam', JSON.stringify(newValue));
+        window.dispatchEvent(new Event(BOX_SORT_CONFIG_CHANGED_EVENT));
     }, [sortConfig]);
     const onSortConfigChange = React.useCallback((value: BoxSortConfig) => {
         setSortConfig(value);
         localStorage.setItem('PstPokemonBoxParam', JSON.stringify(value));
+        window.dispatchEvent(new Event(BOX_SORT_CONFIG_CHANGED_EVENT));
     }, []);
     const onFilterButtonClick = React.useCallback(() => {
         setFilterOpen(true);
