@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import {
-    Accordion, AccordionDetails, AccordionSummary, Button, Dialog, DialogActions,
+    Accordion, AccordionDetails, AccordionSummary, Box, Button, Dialog, DialogActions,
     DialogContent, DialogTitle, FormControl, FormControlLabel, MenuItem, Paper, Select,
     SelectChangeEvent, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead,
     TableRow, ToggleButton, ToggleButtonGroup, Typography,
@@ -205,10 +205,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                 料理の最終エナジーと、必要な食材を集めるのにかかる稼働時間を見ます。
             </Typography>
             <Typography sx={{mb: 2}} variant="body2" color="text.secondary">
-                表示エナジー = 基本エナジー + rhu(基本エナジー × レシピレベルボーナス)
-                <br />
-                最終エナジー = 表示エナジー × (1 + フィールドボーナス)
-                <br />
                 参照中の設定: レシピレベル {parameter.recipeLevel} / レシピボーナス {parameter.recipeBonus}% / フィールドボーナス {parameter.fieldBonus}%
             </Typography>
             <FormControlLabel
@@ -289,21 +285,27 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     {formatDays(totalDays * mealCount)}日（{formatHoursMinutesFromDays(totalDays * mealCount)}）
                                                 </Typography>
                                             )}
-                                            <ToggleButtonGroup
-                                                exclusive
-                                                size="small"
-                                                value={mealCount}
-                                                onChange={onMealCountChange}
-                                                aria-label="meal count"
+                                            <Box
+                                                onClick={e => e.stopPropagation()}
+                                                onMouseDown={e => e.stopPropagation()}
+                                                onPointerDown={e => e.stopPropagation()}
                                                 sx={{ml: isSmallScreen ? 0 : 1}}
                                             >
-                                                <ToggleButton value={1} aria-label="1 meal">
-                                                    1食
-                                                </ToggleButton>
-                                                <ToggleButton value={3} aria-label="3 meals">
-                                                    3食
-                                                </ToggleButton>
-                                            </ToggleButtonGroup>
+                                                <ToggleButtonGroup
+                                                    exclusive
+                                                    size="small"
+                                                    value={mealCount}
+                                                    onChange={onMealCountChange}
+                                                    aria-label="meal count"
+                                                >
+                                                    <ToggleButton value={1} aria-label="1 meal">
+                                                        1食
+                                                    </ToggleButton>
+                                                    <ToggleButton value={3} aria-label="3 meals">
+                                                        3食
+                                                    </ToggleButton>
+                                                </ToggleButtonGroup>
+                                            </Box>
                                         </Stack>
                                     </Stack>
                                 </Stack>
