@@ -145,6 +145,22 @@ describe('PokemonStrength', () => {
             expect(sumStrength).toBeCloseTo(result.ingStrength);
         });
 
+        test('Hyper Cutter uses the expected ingredient pool average', () => {
+            const iv = new PokemonIv({
+                pokemonName: 'Mawile',
+                level: 60,
+            });
+            const param = createParam({
+                fieldBonus: 0,
+                recipeBonus: 0,
+                period: 24,
+            });
+            const strength = new PokemonStrength(iv, param);
+            const result = strength.calculate();
+
+            expect(result.skillStrength / result.skillValue).toBeCloseTo(123.75);
+        });
+
         test('calculates strength with whistle period', () => {
             const iv = new PokemonIv({
                 pokemonName: 'Pikachu',
@@ -398,4 +414,3 @@ describe('PokemonStrength', () => {
         });
     });
 });
-

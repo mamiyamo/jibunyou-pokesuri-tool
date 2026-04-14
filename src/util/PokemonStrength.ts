@@ -60,6 +60,12 @@ export const expertFavoriteSkillTriggerBonus = 1.25;
 /** Helping speed penalty for non-favorite berries in Expert Mode */
 export const expertNonFavoriteBerrySpeedPenalty = 0.15;
 
+const hyperCutterAverageIngredientStrength =
+    (ingredientStrength.potato +
+        ingredientStrength.oil +
+        ingredientStrength.tomato +
+        ingredientStrength.corn) / 4;
+
 /**
  * Represents the parameter of PokemonStrength.calc.
  */
@@ -776,10 +782,10 @@ class PokemonStrength {
                 };
             }
             case "Ingredient Draw S (Hyper Cutter)": {
-                const averageStrength = 130.75;
                 return {
                     skillValue: skillValue * (1 + hyperCutterSuccess),
-                    skillStrength: skillValue * averageStrength * ingFactor * (1 + hyperCutterSuccess),
+                    skillStrength: skillValue * hyperCutterAverageIngredientStrength * ingFactor *
+                        (1 + hyperCutterSuccess),
                     skillValuePerTrigger, // Additional ingredients are not included
                     skillValue2: 0, skillStrength2: 0, skillValuePerTrigger2: 0,
                 };
