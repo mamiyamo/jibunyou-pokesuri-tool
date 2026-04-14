@@ -230,6 +230,13 @@ export const pokedayRecipeGroups: {
     },
 ];
 
+const hyperCutterIngredientPool: IngredientName[] = [
+    'potato',
+    'oil',
+    'tomato',
+    'corn',
+];
+
 function roundHalfUp(value: number): number {
     return Math.floor(value + 0.5);
 }
@@ -331,7 +338,8 @@ export function getDailyIngredientDetailMap(
         boxItem.iv.versatileSkill : boxItem.iv.pokemon.skill;
     const ingredientPool = getSkillIngredientPool(boxItem, skillName);
     const shouldUseEqualWeight = skillName.startsWith("Ingredient Magnet S") ||
-        skillName === "Ingredient Draw S";
+        skillName === "Ingredient Draw S" ||
+        skillName === "Ingredient Draw S (Hyper Cutter)";
     if (ingredientPool.length === 0) {
         return ret;
     }
@@ -379,6 +387,10 @@ export function getDailyIngredientDetailMap(
 function getSkillIngredientPool(boxItem: PokemonBoxItem, skillName: string): IngredientName[] {
     if (skillName.startsWith("Ingredient Magnet S")) {
         return IngredientNames;
+    }
+
+    if (skillName === "Ingredient Draw S (Hyper Cutter)") {
+        return hyperCutterIngredientPool;
     }
 
     // 食材セレクトSは固定食材セットを使う（解放状況には依存しない）
