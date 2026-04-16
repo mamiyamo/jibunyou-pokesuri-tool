@@ -291,14 +291,15 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             ),
                         );
                         const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
-                        const roleDaysByPokemonId = new Map<number, number>();
-                        if (totalWorkDaysResult !== null) {
-                            selectedTeamItems.forEach((item, index) => {
-                                roleDaysByPokemonId.set(item.id, totalWorkDaysResult.workDaysByPokemon[index] ?? 0);
-                            });
-                        }
                         const energyPerDay = totalWorkDays === null || totalWorkDays <= 0 ? null :
                             finalEnergy * mealCount / totalWorkDays;
+                        const contributionByPokemonId = new Map<number, number>();
+                        if (totalWorkDaysResult !== null && energyPerDay !== null && totalWorkDays > 0) {
+                            selectedTeamItems.forEach((item, index) => {
+                                const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
+                                contributionByPokemonId.set(item.id, energyPerDay * workDays / totalWorkDays);
+                            });
+                        }
 
                         return <Accordion key={recipeKey(recipe)} disableGutters sx={{mb: 0.5}}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -413,13 +414,22 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         sx={{minWidth: 0, width: '100%'}}
                                                     >
                                                         <PokemonIcon idForm={selected.iv.idForm} size={24}/>
-                                                        <Typography
-                                                            variant="body2"
-                                                            sx={{wordBreak: 'break-word'}}
-                                                            title={createPokemonTooltipText(selected, t)}
-                                                        >
-                                                            {getDisplayName(selected, t)}
-                                                        </Typography>
+                                                        <Stack spacing={0} sx={{minWidth: 0}}>
+                                                            <Typography
+                                                                variant="body2"
+                                                                sx={{wordBreak: 'break-word'}}
+                                                                title={createPokemonTooltipText(selected, t)}
+                                                            >
+                                                                {getDisplayName(selected, t)}
+                                                            </Typography>
+                                                            {contributionByPokemonId.has(selected.id) && (
+                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                    貢献度: {formatWithComma(
+                                                                        Math.round(contributionByPokemonId.get(selected.id) ?? 0)
+                                                                    )}
+                                                                </Typography>
+                                                            )}
+                                                        </Stack>
                                                         <Stack
                                                             direction="row"
                                                             spacing={0.4}
@@ -444,11 +454,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                     </Stack>;
                                                             })}
                                                         </Stack>
-                                                            {totalWorkDaysResult !== null && roleDaysByPokemonId.has(selected.id) && (
-                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                    役割度: {formatDays(roleDaysByPokemonId.get(selected.id) ?? 0)}日
-                                                                </Typography>
-                                                            )}
                                                     </Stack>;
                                                 }}
                                             >
@@ -463,12 +468,21 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     return <MenuItem key={item.id} value={item.id.toString()} disabled={isUsedByOther}>
                                                         <Stack direction="row" spacing={0.8} alignItems="center">
                                                             <PokemonIcon idForm={item.iv.idForm} size={24}/>
-                                                            <Typography
-                                                                variant="body2"
-                                                                title={createPokemonTooltipText(item, t)}
-                                                            >
-                                                                {getDisplayName(item, t)}
-                                                            </Typography>
+                                                            <Stack spacing={0} sx={{minWidth: 0}}>
+                                                                <Typography
+                                                                    variant="body2"
+                                                                    title={createPokemonTooltipText(item, t)}
+                                                                >
+                                                                    {getDisplayName(item, t)}
+                                                                </Typography>
+                                                                {contributionByPokemonId.has(item.id) && (
+                                                                    <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                        貢献度: {formatWithComma(
+                                                                            Math.round(contributionByPokemonId.get(item.id) ?? 0)
+                                                                        )}
+                                                                    </Typography>
+                                                                )}
+                                                            </Stack>
                                                             <Stack direction="row" spacing={0.4} alignItems="center" flexWrap="wrap">
                                                                 {recipe.ingredients.map(ingredient => {
                                                                     const detail = baseDailyCountMap[item.id]?.[ingredient.name] ??
@@ -487,11 +501,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                     </Stack>;
                                                                 })}
                                                             </Stack>
-                                                            {totalWorkDaysResult !== null && roleDaysByPokemonId.has(item.id) && (
-                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                    役割度: {formatDays(roleDaysByPokemonId.get(item.id) ?? 0)}日
-                                                                </Typography>
-                                                            )}
                                                         </Stack>
                                                     </MenuItem>;
                                                 })}
