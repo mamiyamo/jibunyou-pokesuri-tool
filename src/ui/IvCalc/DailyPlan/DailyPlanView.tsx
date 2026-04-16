@@ -182,7 +182,7 @@ const DailyPlanView = React.memo(({items, parameter}: {
         <section>
             <h3>推薦編成</h3>
             <Typography variant="body2" sx={{marginTop: '.35rem', color: '#666'}}>
-                期待エナジー = 直接エナジー + 料理エナジー。
+                期待エナジー = きのみエナジー + 料理エナジー + スキルエナジー。
             </Typography>
             <div style={{
                 display: 'grid',
@@ -190,8 +190,9 @@ const DailyPlanView = React.memo(({items, parameter}: {
                 gap: '.6rem',
                 marginTop: '.75rem',
             }}>
-                <InfoBlock label="直接エナジー" value={formatWithComma(Math.round(result.totalDirectEnergy))}/>
+                <InfoBlock label="きのみエナジー" value={formatWithComma(Math.round(result.totalBerryEnergy))}/>
                 <InfoBlock label="料理エナジー" value={formatWithComma(Math.round(result.totalMealEnergy))}/>
+                <InfoBlock label="スキルエナジー" value={formatWithComma(Math.round(result.totalSkillEnergy))}/>
                 <InfoBlock label="期待総エナジー" value={formatWithComma(Math.round(result.totalExpectedEnergy))}/>
                 <InfoBlock label="食材不足" value={result.isDemandSatisfied ? 'なし' : 'あり'}/>
             </div>
@@ -219,11 +220,11 @@ const DailyPlanView = React.memo(({items, parameter}: {
                                 {summary.item.iv.pokemon.name} ・ {summary.item.iv.pokemon.skill}
                             </Typography>
                             <Typography variant="body2" sx={{color: '#666'}}>
-                                直接 {formatWithComma(Math.round(summary.directEnergy))} / 貢献 {formatWithComma(Math.round(summary.ingredientCoverage))}
+                                きのみ {formatWithComma(Math.round(summary.berryEnergy))} / 料理 {formatWithComma(Math.round(summary.mealEnergy))} / スキル {formatWithComma(Math.round(summary.skillEnergy))}
                             </Typography>
                         </div>
                         <Typography variant="body2" sx={{fontWeight: 600}}>
-                            {formatWithComma(Math.round(summary.score))}
+                            {formatWithComma(Math.round(summary.totalEnergy))}
                         </Typography>
                     </div>
                 ))}

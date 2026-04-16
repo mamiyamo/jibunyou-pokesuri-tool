@@ -3,6 +3,7 @@ import { PokemonBoxItem } from './PokemonBox';
 import PokemonStrength, { StrengthParameter } from './PokemonStrength';
 import { ingredientStrength as ingredientValue } from './PokemonRp';
 import {
+    calculateMinimumWorkDaysDetail,
     getDailyIngredientDetailMapWithStrengthParameter,
     getRecipeFinalEnergy,
     PokedayRecipe,
@@ -19,6 +20,10 @@ export type DailyPlannerMealChoice = {
 export type DailyPlannerPokemonSummary = {
     item: PokemonBoxItem;
     directEnergy: number;
+    berryEnergy: number;
+    mealEnergy: number;
+    skillEnergy: number;
+    totalEnergy: number;
     ingredientCounts: Partial<Record<IngredientName, number>>;
     ingredientCoverage: number;
     score: number;
@@ -32,8 +37,10 @@ export type DailyPlannerResult = {
     stock: DailyPlannerIngredientStock;
     remainingDemand: Partial<Record<IngredientName, number>>;
     selectedSummaries: DailyPlannerPokemonSummary[];
+    totalBerryEnergy: number;
     totalDirectEnergy: number;
     totalMealEnergy: number;
+    totalSkillEnergy: number;
     totalExpectedEnergy: number;
     isDemandSatisfied: boolean;
 };
@@ -78,6 +85,13 @@ function isResourceMainSkill(skillName: string): boolean {
         skillName.startsWith('Cooking Power-Up S');
 }
 
+function isDirectEnergySkill(skillName: string): boolean {
+    return skillName.startsWith('Charge Strength S') ||
+        skillName.startsWith('Charge Strength M') ||
+        skillName.startsWith('Berry Burst') ||
+        skillName === 'Energy for Everyone S (Lunar Blessing)';
+}
+
 function getSkillName(item: PokemonBoxItem): string {
     return item.iv.pokemon.skill === 'Versatile' ? item.iv.versatileSkill : item.iv.pokemon.skill;
 }
@@ -94,6 +108,10 @@ function calculatePokemonDailySummary(item: PokemonBoxItem,
         result.skillStrength + result.skillStrength2 : 0;
     const directEnergy = Math.max(0,
         result.totalStrength - result.ingStrength - resourceSkillStrength);
+    // First pass: only count clearly direct energy skills here.
+    const skillEnergy = isDirectEnergySkill(skillName) ?
+        Math.max(0, result.skillStrength + result.skillStrength2) : 0;
+    const berryEnergy = Math.max(0, directEnergy - skillEnergy);
     const ingredientMap = getDailyIngredientDetailMapWithStrengthParameter(
         item, dailyParameter, helpBonusCount);
     const ingredientCounts: Partial<Record<IngredientName, number>> = {};
@@ -108,6 +126,10 @@ function calculatePokemonDailySummary(item: PokemonBoxItem,
     return {
         item,
         directEnergy,
+        berryEnergy,
+        mealEnergy: 0,
+        skillEnergy,
+        totalEnergy: berryEnergy + skillEnergy,
         ingredientCounts,
         ingredientCoverage,
         score: directEnergy + ingredientCoverage,
@@ -187,6 +209,7 @@ export function calculateDailyPlannerResult(
     ];
     const demand = calculateDemandFromMeals(normalizedMeals);
     const remainingDemand = calculateStockedDemand(demand, stock);
+    const stockedDemand = {...remainingDemand};
 
     const selectedItems: PokemonBoxItem[] = [];
     const usedIds = new Set<number>();
@@ -239,13 +262,41 @@ export function calculateDailyPlannerResult(
         score: summary.directEnergy + summary.ingredientCoverage,
     }));
 
-    const totalDirectEnergy = finalSummaries.reduce((sum, summary) => sum + summary.directEnergy, 0);
+    const mealRequirements = IngredientNames.map(name => stockedDemand[name] ?? 0);
+    const mealRatesByPokemon = finalSummaries.map(summary =>
+        IngredientNames.map(name => summary.ingredientCounts[name] ?? 0)
+    );
+    // Attribute cooking energy using the same LP-style work-day split as Pokeday.
+    const mealWorkDays = calculateMinimumWorkDaysDetail(mealRequirements, mealRatesByPokemon);
     const totalMealEnergy = normalizedMeals.reduce((sum, meal) =>
         sum + getRecipeFinalEnergy(meal.recipe, baseParameter) * 1.1,
     0);
-    const totalExpectedEnergy = totalDirectEnergy + totalMealEnergy;
+    const totalCoverage = finalSummaries.reduce((sum, summary) => sum + summary.ingredientCoverage, 0);
+    const mealEnergyByPokemon = finalSummaries.map((summary, index) => {
+        if (mealWorkDays !== null && mealWorkDays.totalDays > 0) {
+            return totalMealEnergy * (mealWorkDays.workDaysByPokemon[index] ?? 0) / mealWorkDays.totalDays;
+        }
+        if (totalCoverage > 0) {
+            return totalMealEnergy * summary.ingredientCoverage / totalCoverage;
+        }
+        return 0;
+    });
+    const adjustedSummaries = finalSummaries.map((summary, index) => {
+        const mealEnergy = mealEnergyByPokemon[index] ?? 0;
+        const totalEnergy = summary.berryEnergy + mealEnergy + summary.skillEnergy;
+        return {
+            ...summary,
+            mealEnergy,
+            totalEnergy,
+            score: totalEnergy,
+        };
+    });
+    const totalBerryEnergy = adjustedSummaries.reduce((sum, summary) => sum + summary.berryEnergy, 0);
+    const totalSkillEnergy = adjustedSummaries.reduce((sum, summary) => sum + summary.skillEnergy, 0);
+    const totalDirectEnergy = totalBerryEnergy + totalSkillEnergy;
+    const totalExpectedEnergy = adjustedSummaries.reduce((sum, summary) => sum + summary.totalEnergy, 0);
     const finalRemaining: Partial<Record<IngredientName, number>> = {...remainingDemand};
-    for (const summary of finalSummaries) {
+    for (const summary of adjustedSummaries) {
         subtractIngredientCounts(finalRemaining, summary.ingredientCounts);
     }
 
@@ -254,9 +305,11 @@ export function calculateDailyPlannerResult(
         demand,
         stock,
         remainingDemand: finalRemaining,
-        selectedSummaries: finalSummaries,
+        selectedSummaries: adjustedSummaries,
+        totalBerryEnergy,
         totalDirectEnergy,
         totalMealEnergy,
+        totalSkillEnergy,
         totalExpectedEnergy,
         isDemandSatisfied: IngredientNames.every(name => (finalRemaining[name] ?? 0) <= 0),
     };
