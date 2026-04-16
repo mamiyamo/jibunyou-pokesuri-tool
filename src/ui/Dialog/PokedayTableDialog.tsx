@@ -52,6 +52,10 @@ function formatDailyTotal(value: PokedayIngredientDailyDetail): string {
     return formatDailyCount(value.total);
 }
 
+function formatWorkDays(value: number): string {
+    return `${formatDays(value)}日（${formatHoursMinutesFromDays(value)}）`;
+}
+
 function getDisplayName(item: PokemonBoxItem, t: (key: string) => string): string {
     return item.nickname !== '' ? item.nickname : t(`pokemons.${item.iv.pokemonName}`);
 }
@@ -330,6 +334,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             finalEnergy * mealCount / baseTotalWorkDays;
                         const energyPerDay = totalWorkDays === null || totalWorkDays <= 0 ? null :
                             finalEnergy * mealCount / totalWorkDays;
+                        const pokemonRows = totalWorkDaysResult === null ? [] : selectedTeamItems.map((item, index) => {
+                            const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
+                            return {item, workDays};
+                        });
                         const contributionByPokemonId = new Map<number, number>();
                         if (baseTotalWorkDaysResult !== null && baseEnergyPerDay !== null && baseTotalWorkDays > 0) {
                             selectedTeamItems.forEach((item, index) => {
@@ -585,6 +593,69 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                         </FormControl>;
                                     })}
                                 </Stack>
+                                <Typography variant="subtitle2" sx={{mb: 0.5}}>
+                                    ポケモン別必要日数
+                                </Typography>
+                                <TableContainer sx={{
+                                    mb: 1,
+                                    overflowX: 'auto',
+                                    WebkitOverflowScrolling: 'touch',
+                                    maxWidth: '100%',
+                                }}>
+                                    <Table size="small" sx={{
+                                        width: '100%',
+                                        minWidth: isSmallScreen ? 0 : '100%',
+                                    }}>
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell sx={{width: isSmallScreen ? 160 : 'auto'}}>
+                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                        ポケモン
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell align="right" sx={{width: isSmallScreen ? 80 : 'auto'}}>
+                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                        必要日数
+                                                    </Typography>
+                                                </TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {pokemonRows.map(({item, workDays}) => {
+                                                const isZero = workDays <= 1e-6;
+                                                return <TableRow
+                                                    key={`${recipeId}:pokemon:${item.id}`}
+                                                    sx={{opacity: isZero ? 0.35 : 1}}
+                                                >
+                                                    <TableCell>
+                                                        <Stack direction="row" spacing={0.8} alignItems="center">
+                                                            <Box sx={getHelpingBonusHighlightSx(
+                                                                useHelpingBonus && item.iv.hasHelpingBonusInActiveSubSkills
+                                                            )}>
+                                                                <Stack spacing={0} alignItems="center" sx={{minWidth: 0}}>
+                                                                    <Typography variant="caption" sx={{lineHeight: 1, whiteSpace: 'nowrap'}}>
+                                                                        Lv.{item.iv.level}
+                                                                    </Typography>
+                                                                    <PokemonIcon idForm={item.iv.idForm} size={24}/>
+                                                                </Stack>
+                                                            </Box>
+                                                            <Stack spacing={0} sx={{minWidth: 0}}>
+                                                                <Typography variant="body2" sx={{wordBreak: 'break-word'}}>
+                                                                    {getDisplayName(item, t)}
+                                                                </Typography>
+                                                            </Stack>
+                                                        </Stack>
+                                                    </TableCell>
+                                                    <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
+                                                        <Typography variant="body2" sx={{lineHeight: 1}}>
+                                                            {workDays <= 0 ? '0.00日（0時間0分）' : formatWorkDays(workDays)}
+                                                        </Typography>
+                                                    </TableCell>
+                                                </TableRow>;
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
                                 <TableContainer sx={{
                                     overflowX: 'auto',
                                     WebkitOverflowScrolling: 'touch',
