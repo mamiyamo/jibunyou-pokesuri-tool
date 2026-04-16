@@ -330,7 +330,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                             alignItems: 'start',
                                         }}>
                                             <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
-                                                合計稼働時間／{mealCount}食あたり:
+                                                合計稼働時間:
                                             </Typography>
                                             {totalWorkDays === null ? (
                                                 <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
