@@ -277,7 +277,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             const dailyCount = dailyDetail?.total ?? 0;
                             const days = dailyCount > 0 ? ingredient.count / dailyCount : null;
                             if (days !== null) {
-                                totalDays = totalDays === null ? days : totalDays + days;
+                                totalDays = totalDays === null ? days : Math.max(totalDays, days);
                             }
                             const perPokemon = selectedTeamItems.map(item => {
                                 const detail = selectedTeamDetailMap[item.id]?.[ingredient.name] ??
@@ -286,6 +286,8 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             });
                             return {ingredient, dailyDetail, dailyCount, days, perPokemon};
                         });
+                        const totalWorkDays = totalDays === null ? null : totalDays * mealCount;
+                        const energyPerDay = totalDays === null ? null : finalEnergy / totalDays;
 
                         return <Accordion key={recipeKey(recipe)} disableGutters sx={{mb: 0.5}}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -299,13 +301,20 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                             <Typography variant="body2">
                                                 合計稼働時間／{mealCount}食あたり:
                                             </Typography>
-                                            {totalDays === null ? (
-                                                <Typography variant="body2">ー</Typography>
-                                            ) : (
-                                                <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
-                                                    {formatDays(totalDays * mealCount)}日（{formatHoursMinutesFromDays(totalDays * mealCount)}）
-                                                </Typography>
-                                            )}
+                                            <Stack spacing={0} alignItems={isSmallScreen ? 'flex-start' : 'flex-end'}>
+                                                {totalWorkDays === null ? (
+                                                    <Typography variant="body2">ー</Typography>
+                                                ) : (
+                                                    <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                                        {formatDays(totalWorkDays)}日（{formatHoursMinutesFromDays(totalWorkDays)}）
+                                                    </Typography>
+                                                )}
+                                                {energyPerDay !== null && (
+                                                    <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                                        1日あたりエナジー: {formatWithComma(Math.round(energyPerDay))}
+                                                    </Typography>
+                                                )}
+                                            </Stack>
                                             <Box
                                                 onClick={e => e.stopPropagation()}
                                                 onMouseDown={e => e.stopPropagation()}
