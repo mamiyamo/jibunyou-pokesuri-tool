@@ -36,9 +36,25 @@ export type DailyPlannerResult = {
     demand: Partial<Record<IngredientName, number>>;
     stock: DailyPlannerIngredientStock;
     remainingDemand: Partial<Record<IngredientName, number>>;
+    phases: DailyPlannerPhaseResult[];
     selectedSummaries: DailyPlannerPokemonSummary[];
     totalBerryEnergy: number;
     totalDirectEnergy: number;
+    totalMealEnergy: number;
+    totalSkillEnergy: number;
+    totalExpectedEnergy: number;
+    isDemandSatisfied: boolean;
+};
+
+export type DailyPlannerPhaseResult = {
+    slot: 0 | 1 | 2 | 3;
+    startHour: number;
+    endHour: number;
+    meal: PokedayRecipe | null;
+    demand: Partial<Record<IngredientName, number>>;
+    remainingDemand: Partial<Record<IngredientName, number>>;
+    selectedSummaries: DailyPlannerPokemonSummary[];
+    totalBerryEnergy: number;
     totalMealEnergy: number;
     totalSkillEnergy: number;
     totalExpectedEnergy: number;
@@ -96,11 +112,13 @@ function getSkillName(item: PokemonBoxItem): string {
     return item.iv.pokemon.skill === 'Versatile' ? item.iv.versatileSkill : item.iv.pokemon.skill;
 }
 
-function calculatePokemonDailySummary(item: PokemonBoxItem,
+function calculatePokemonPeriodSummary(item: PokemonBoxItem,
     parameter: StrengthParameter,
     helpBonusCount: number,
+    periodHours: number,
 ): DailyPlannerPokemonSummary {
     const dailyParameter = createPlannerParameter(parameter, helpBonusCount);
+    dailyParameter.period = periodHours;
     const strength = new PokemonStrength(item.iv, dailyParameter);
     const result = strength.calculate();
     const skillName = getSkillName(item);
@@ -193,23 +211,26 @@ function calculateCoverage(
     return ret;
 }
 
-export function calculateDailyPlannerResult(
+function calculatePhaseResult(
     items: PokemonBoxItem[],
     parameter: StrengthParameter,
-    mealChoices: DailyPlannerMealChoice[] = getDefaultDailyPlannerMeals(),
-    stock: DailyPlannerIngredientStock = {},
-): DailyPlannerResult {
+    meal: PokedayRecipe | null,
+    stock: DailyPlannerIngredientStock,
+    periodHours: number,
+    slot: 0 | 1 | 2 | 3,
+    startHour: number,
+    endHour: number,
+): {
+    phase: DailyPlannerPhaseResult;
+    nextStock: DailyPlannerIngredientStock;
+} {
     const baseParameter: StrengthParameter = {
         ...parameter,
         helpBonusCount: 0,
+        period: periodHours,
     };
-    const normalizedMeals = mealChoices.length >= 3 ? mealChoices.slice(0, 3) : [
-        ...mealChoices,
-        ...getDefaultDailyPlannerMeals().slice(mealChoices.length),
-    ];
-    const demand = calculateDemandFromMeals(normalizedMeals);
+    const demand = meal === null ? {} : calculateDemandFromMeals([{slot: 0, recipe: meal}]);
     const remainingDemand = calculateStockedDemand(demand, stock);
-    const stockedDemand = {...remainingDemand};
 
     const selectedItems: PokemonBoxItem[] = [];
     const usedIds = new Set<number>();
@@ -223,13 +244,14 @@ export function calculateDailyPlannerResult(
             if (usedIds.has(item.id)) {
                 continue;
             }
-            const summary = calculatePokemonDailySummary(
+            const summary = calculatePokemonPeriodSummary(
                 item,
                 baseParameter,
                 selectedHelpingBonusCount,
+                periodHours,
             );
             const coverage = calculateCoverage(summary.ingredientCounts, currentRemaining);
-            const score = summary.directEnergy + coverage;
+            const score = summary.berryEnergy + summary.skillEnergy + coverage;
             if (score > bestScore) {
                 bestScore = score;
                 bestSummary = {
@@ -256,28 +278,25 @@ export function calculateDailyPlannerResult(
             0,
             Math.min(4, selectedHelpingBonusCount - (item.iv.hasHelpingBonusInActiveSubSkills ? 1 : 0)),
         ) as 0|1|2|3|4;
-        return calculatePokemonDailySummary(item, baseParameter, helpBonusCount);
-    }).map(summary => ({
-        ...summary,
-        score: summary.directEnergy + summary.ingredientCoverage,
-    }));
+        return calculatePokemonPeriodSummary(item, baseParameter, helpBonusCount, periodHours);
+    });
 
-    const mealRequirements = IngredientNames.map(name => stockedDemand[name] ?? 0);
+    const mealRequirements = IngredientNames.map(name => remainingDemand[name] ?? 0);
     const mealRatesByPokemon = finalSummaries.map(summary =>
         IngredientNames.map(name => summary.ingredientCounts[name] ?? 0)
     );
-    // Attribute cooking energy using the same LP-style work-day split as Pokeday.
-    const mealWorkDays = calculateMinimumWorkDaysDetail(mealRequirements, mealRatesByPokemon);
-    const totalMealEnergy = normalizedMeals.reduce((sum, meal) =>
-        sum + getRecipeFinalEnergy(meal.recipe, baseParameter) * 1.1,
-    0);
+    const mealWorkDays = meal === null ? null : calculateMinimumWorkDaysDetail(mealRequirements, mealRatesByPokemon);
+    const phaseMealEnergy = meal === null ? 0 : getRecipeFinalEnergy(meal, parameter) * 1.1;
     const totalCoverage = finalSummaries.reduce((sum, summary) => sum + summary.ingredientCoverage, 0);
     const mealEnergyByPokemon = finalSummaries.map((summary, index) => {
+        if (phaseMealEnergy <= 0) {
+            return 0;
+        }
         if (mealWorkDays !== null && mealWorkDays.totalDays > 0) {
-            return totalMealEnergy * (mealWorkDays.workDaysByPokemon[index] ?? 0) / mealWorkDays.totalDays;
+            return phaseMealEnergy * (mealWorkDays.workDaysByPokemon[index] ?? 0) / mealWorkDays.totalDays;
         }
         if (totalCoverage > 0) {
-            return totalMealEnergy * summary.ingredientCoverage / totalCoverage;
+            return phaseMealEnergy * summary.ingredientCoverage / totalCoverage;
         }
         return 0;
     });
@@ -288,13 +307,125 @@ export function calculateDailyPlannerResult(
             ...summary,
             mealEnergy,
             totalEnergy,
-            score: totalEnergy,
+            score: summary.berryEnergy + summary.skillEnergy + summary.ingredientCoverage,
         };
     });
+
     const totalBerryEnergy = adjustedSummaries.reduce((sum, summary) => sum + summary.berryEnergy, 0);
+    const totalMealEnergy = adjustedSummaries.reduce((sum, summary) => sum + summary.mealEnergy, 0);
     const totalSkillEnergy = adjustedSummaries.reduce((sum, summary) => sum + summary.skillEnergy, 0);
-    const totalDirectEnergy = totalBerryEnergy + totalSkillEnergy;
     const totalExpectedEnergy = adjustedSummaries.reduce((sum, summary) => sum + summary.totalEnergy, 0);
+
+    const nextStock: DailyPlannerIngredientStock = {...stock};
+    for (const summary of adjustedSummaries) {
+        for (const ingredientName of IngredientNames) {
+            const value = summary.ingredientCounts[ingredientName] ?? 0;
+            if (value <= 0) {
+                continue;
+            }
+            nextStock[ingredientName] = (nextStock[ingredientName] ?? 0) + value;
+        }
+    }
+    if (meal !== null) {
+        for (const ingredient of meal.ingredients) {
+            nextStock[ingredient.name] = Math.max(0, (nextStock[ingredient.name] ?? 0) - ingredient.count);
+        }
+    }
+
+    return {
+        phase: {
+            slot,
+            startHour,
+            endHour,
+            meal,
+            demand,
+            remainingDemand: currentRemaining,
+            selectedSummaries: adjustedSummaries,
+            totalBerryEnergy,
+            totalMealEnergy,
+            totalSkillEnergy,
+            totalExpectedEnergy,
+            isDemandSatisfied: IngredientNames.every(name => (currentRemaining[name] ?? 0) <= 0),
+        },
+        nextStock,
+    };
+}
+
+export function calculateDailyPlannerResult(
+    items: PokemonBoxItem[],
+    parameter: StrengthParameter,
+    mealChoices: DailyPlannerMealChoice[] = getDefaultDailyPlannerMeals(),
+    stock: DailyPlannerIngredientStock = {},
+): DailyPlannerResult {
+    const baseParameter: StrengthParameter = {
+        ...parameter,
+        helpBonusCount: 0,
+    };
+    const normalizedMeals = mealChoices.length >= 3 ? mealChoices.slice(0, 3) : [
+        ...mealChoices,
+        ...getDefaultDailyPlannerMeals().slice(mealChoices.length),
+    ];
+    const demand = calculateDemandFromMeals(normalizedMeals);
+    const remainingDemand = calculateStockedDemand(demand, stock);
+    const phaseDefinitions: Array<{
+        slot: 0 | 1 | 2 | 3;
+        startHour: number;
+        endHour: number;
+        meal: PokedayRecipe | null;
+    }> = [
+        {slot: 0, startHour: 0, endHour: 6, meal: normalizedMeals[0].recipe},
+        {slot: 1, startHour: 6, endHour: 12, meal: normalizedMeals[1].recipe},
+        {slot: 2, startHour: 12, endHour: 18, meal: normalizedMeals[2].recipe},
+        {slot: 3, startHour: 18, endHour: 24, meal: null},
+    ];
+
+    const phases: DailyPlannerPhaseResult[] = [];
+    let currentStock = {...stock};
+    for (const phaseDefinition of phaseDefinitions) {
+        const phaseResult = calculatePhaseResult(
+            items,
+            baseParameter,
+            phaseDefinition.meal,
+            currentStock,
+            phaseDefinition.endHour - phaseDefinition.startHour,
+            phaseDefinition.slot,
+            phaseDefinition.startHour,
+            phaseDefinition.endHour,
+        );
+        phases.push(phaseResult.phase);
+        currentStock = phaseResult.nextStock;
+    }
+
+    const summaryMap = new Map<number, DailyPlannerPokemonSummary>();
+    for (const phase of phases) {
+        for (const summary of phase.selectedSummaries) {
+            const current = summaryMap.get(summary.item.id);
+            if (current === undefined) {
+                summaryMap.set(summary.item.id, {
+                    ...summary,
+                    helpBonusCount: summary.helpBonusCount,
+                    hasHelpingBonus: summary.hasHelpingBonus,
+                });
+                continue;
+            }
+            current.directEnergy += summary.directEnergy;
+            current.berryEnergy += summary.berryEnergy;
+            current.mealEnergy += summary.mealEnergy;
+            current.skillEnergy += summary.skillEnergy;
+            current.totalEnergy += summary.totalEnergy;
+            current.ingredientCoverage += summary.ingredientCoverage;
+            current.score += summary.score;
+            current.hasHelpingBonus = current.hasHelpingBonus || summary.hasHelpingBonus;
+            current.helpBonusCount = Math.max(current.helpBonusCount, summary.helpBonusCount);
+        }
+    }
+    const adjustedSummaries = [...summaryMap.values()].sort((a, b) => a.item.id - b.item.id);
+
+    const totalBerryEnergy = phases.reduce((sum, phase) => sum + phase.totalBerryEnergy, 0);
+    const totalMealEnergy = phases.reduce((sum, phase) => sum + phase.totalMealEnergy, 0);
+    const totalSkillEnergy = phases.reduce((sum, phase) => sum + phase.totalSkillEnergy, 0);
+    const totalDirectEnergy = totalBerryEnergy + totalSkillEnergy;
+    const totalExpectedEnergy = phases.reduce((sum, phase) => sum + phase.totalExpectedEnergy, 0);
     const finalRemaining: Partial<Record<IngredientName, number>> = {...remainingDemand};
     for (const summary of adjustedSummaries) {
         subtractIngredientCounts(finalRemaining, summary.ingredientCounts);
@@ -305,6 +436,7 @@ export function calculateDailyPlannerResult(
         demand,
         stock,
         remainingDemand: finalRemaining,
+        phases,
         selectedSummaries: adjustedSummaries,
         totalBerryEnergy,
         totalDirectEnergy,

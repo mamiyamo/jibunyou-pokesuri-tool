@@ -180,7 +180,69 @@ const DailyPlanView = React.memo(({items, parameter}: {
         </section>
 
         <section>
-            <h3>推薦編成</h3>
+            <h3>時間帯プラン</h3>
+            <Typography variant="body2" sx={{marginTop: '.35rem', color: '#666'}}>
+                6:00 / 12:00 / 18:00 の料理に合わせて、4つの時間帯でパーティを切り替えます。
+            </Typography>
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '.75rem',
+                marginTop: '.75rem',
+            }}>
+                {result.phases.map(phase => (
+                    <div key={`${phase.slot}-${phase.startHour}`} style={{
+                        border: '1px solid #e2e2e2',
+                        borderRadius: '.45rem',
+                        padding: '.6rem',
+                    }}>
+                        <Typography variant="body2" sx={{fontWeight: 600}}>
+                            {phase.startHour}:00 - {phase.endHour}:00
+                        </Typography>
+                        <Typography variant="body2" sx={{color: '#666', marginTop: '.15rem'}}>
+                            {phase.meal === null ? '食事なし' : getRecipeLabel(phase.meal)}
+                        </Typography>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                            gap: '.35rem .5rem',
+                            marginTop: '.5rem',
+                        }}>
+                            <InfoBlock label="きのみ" value={formatWithComma(Math.round(phase.totalBerryEnergy))}/>
+                            <InfoBlock label="料理" value={formatWithComma(Math.round(phase.totalMealEnergy))}/>
+                            <InfoBlock label="スキル" value={formatWithComma(Math.round(phase.totalSkillEnergy))}/>
+                            <InfoBlock label="合計" value={formatWithComma(Math.round(phase.totalExpectedEnergy))}/>
+                        </div>
+                        <div style={{marginTop: '.5rem', display: 'grid', gap: '.35rem'}}>
+                            {phase.selectedSummaries.length === 0 ? (
+                                <Typography variant="body2" sx={{color: '#888'}}>
+                                    編成候補なし
+                                </Typography>
+                            ) : phase.selectedSummaries.map(summary => (
+                                <div key={summary.item.id} style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'auto 1fr',
+                                    gap: '.5rem',
+                                    alignItems: 'center',
+                                }}>
+                                    <PokemonIcon idForm={summary.item.iv.idForm} size={32}/>
+                                    <Typography variant="body2" sx={{lineHeight: 1.25}}>
+                                        {summary.item.filledNickname(t)}
+                                        <br/>
+                                        <span style={{color: '#666'}}>
+                                            きのみ {formatWithComma(Math.round(summary.berryEnergy))} / 料理 {formatWithComma(Math.round(summary.mealEnergy))} / スキル {formatWithComma(Math.round(summary.skillEnergy))}
+                                        </span>
+                                    </Typography>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </section>
+
+        <section>
+            <h3>1日集計</h3>
             <Typography variant="body2" sx={{marginTop: '.35rem', color: '#666'}}>
                 期待エナジー = きのみエナジー + 料理エナジー + スキルエナジー。
             </Typography>

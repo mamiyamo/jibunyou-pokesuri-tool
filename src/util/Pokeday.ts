@@ -533,11 +533,12 @@ export function getDailyIngredientDetailMapWithStrengthParameter(
     boxItem: PokemonBoxItem,
     parameter: StrengthParameter,
     helpBonusCount: number = 0,
+    periodHours: number = 24,
 ): Partial<Record<IngredientName, PokedayIngredientDailyDetail>> {
     const helpBonus = Math.max(0, Math.min(4, Math.floor(helpBonusCount))) as 0|1|2|3|4;
     const strength = new PokemonStrength(boxItem.iv, {
         ...parameter,
-        period: 24,
+        period: periodHours,
         helpBonusCount: helpBonus,
     });
     const result = strength.calculate();
