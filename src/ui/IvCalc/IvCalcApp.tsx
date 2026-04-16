@@ -12,6 +12,7 @@ import StrengthSettingForm from './Strength/StrengthParameterForm';
 import RpView from './Rp/RpView';
 import StrengthView from './Strength/StrengthView';
 import RatingView from './RatingView';
+import DailyPlanView from './DailyPlan/DailyPlanView';
 import BoxItemDialog from './Box/BoxItemDialog';
 import BoxExportDialog from './Box/BoxExportDialog';
 import BoxImportDialog from './Box/BoxImportDialog';
@@ -84,11 +85,14 @@ const ResearchCalcApp = React.memo(() => {
                 <StyledTab label={t('rp')}/>
                 <StyledTab label={t('strength2')}/>
                 <StyledTab label={t('rating')}/>
+                <StyledTab label="1日編成"/>
             </StyledTabs>
             {state.tabIndex === 0 && <RpView state={state} width={width}/>}
             {state.tabIndex === 1 && <StrengthView state={state} dispatch={dispatch}/>}
             {state.tabIndex === 2 && <RatingView pokemonIv={state.pokemonIv}
                 width={width} useSkillPity={state.parameter.useSkillPity}/>}
+            {state.tabIndex === 3 && <DailyPlanView items={state.box.items}
+                parameter={state.parameter}/>}
             <RateNotFixedPanel state={state} dispatch={dispatch}/>
 
             <LowerTabHeader state={state}

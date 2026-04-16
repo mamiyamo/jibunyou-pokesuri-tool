@@ -529,7 +529,84 @@ export function getDailyIngredientDetailMap(
     return ret;
 }
 
-function getSkillIngredientPool(boxItem: PokemonBoxItem, skillName: string): IngredientName[] {
+export function getDailyIngredientDetailMapWithStrengthParameter(
+    boxItem: PokemonBoxItem,
+    parameter: StrengthParameter,
+    helpBonusCount: number = 0,
+): Partial<Record<IngredientName, PokedayIngredientDailyDetail>> {
+    const helpBonus = Math.max(0, Math.min(4, Math.floor(helpBonusCount))) as 0|1|2|3|4;
+    const strength = new PokemonStrength(boxItem.iv, {
+        ...parameter,
+        period: 24,
+        helpBonusCount: helpBonus,
+    });
+    const result = strength.calculate();
+    const ret: Partial<Record<IngredientName, PokedayIngredientDailyDetail>> = {};
+    const addCount = (ingredientName: IngredientName, count: number, type: 'base'|'skill') => {
+        if (count <= 0) {
+            return;
+        }
+        const current = ret[ingredientName] ?? {base: 0, skill: 0, total: 0};
+        const next = {
+            ...current,
+            total: current.total + count,
+        };
+        next[type] = current[type] + count;
+        ret[ingredientName] = next;
+    };
+
+    for (const ingredient of result.ingredients) {
+        addCount(ingredient.name, ingredient.count, 'base');
+    }
+
+    const skillName = boxItem.iv.pokemon.skill === "Versatile" ?
+        boxItem.iv.versatileSkill : boxItem.iv.pokemon.skill;
+    const ingredientPool = getSkillIngredientPool(boxItem, skillName);
+    const shouldUseEqualWeight = skillName.startsWith("Ingredient Magnet S") ||
+        skillName === "Ingredient Draw S" ||
+        skillName === "Ingredient Draw S (Hyper Cutter)";
+    if (ingredientPool.length === 0) {
+        return ret;
+    }
+
+    const weightMap: Partial<Record<IngredientName, number>> = {};
+    let weightSum = 0;
+    for (const ingredientName of ingredientPool) {
+        const weight = shouldUseEqualWeight ? 1 :
+            (result.ingredients.find(x => x.name === ingredientName)?.count ?? 0);
+        weightMap[ingredientName] = weight;
+        weightSum += weight;
+    }
+    if (weightSum <= 0) {
+        for (const ingredientName of ingredientPool) {
+            weightMap[ingredientName] = 1;
+        }
+        weightSum = ingredientPool.length;
+    }
+
+    const addDistributedSkillIngredients = (totalCount: number) => {
+        if (totalCount <= 0) {
+            return;
+        }
+        for (const ingredientName of ingredientPool) {
+            const weight = weightMap[ingredientName] ?? 0;
+            addCount(ingredientName, totalCount * weight / weightSum, 'skill');
+        }
+    };
+
+    if (skillName === "Ingredient Magnet S (Plus)") {
+        addCount(boxItem.iv.pokemon.ing1.name, result.skillValue2, 'skill');
+    }
+    else if (skillName.startsWith("Ingredient Magnet S") ||
+        skillName.startsWith("Ingredient Draw S") ||
+        skillName === "Cooking Assist S (Bulk Up)") {
+        addDistributedSkillIngredients(result.skillValue);
+    }
+
+    return ret;
+}
+
+export function getSkillIngredientPool(boxItem: PokemonBoxItem, skillName: string): IngredientName[] {
     if (skillName.startsWith("Ingredient Magnet S")) {
         return IngredientNames;
     }
