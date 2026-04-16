@@ -255,13 +255,18 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             .filter((x): x is PokemonBoxItem => x !== null);
                         const helpingBonusHolders = selectedTeamItems
                             .filter(item => item.iv.hasHelpingBonusInActiveSubSkills);
+                        const baseTeamDetailMap:
+                            Record<number, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>> = {};
                         const selectedTeamDetailMap:
                             Record<number, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>> = {};
                         for (const selectedItem of selectedTeamItems) {
+                            baseTeamDetailMap[selectedItem.id] = getDetailMap(selectedItem, 0);
                             const helpBonusCount = useHelpingBonus ?
                                 helpingBonusHolders.filter(x => x.id !== selectedItem.id).length :
                                 0;
-                            selectedTeamDetailMap[selectedItem.id] = getDetailMap(selectedItem, helpBonusCount);
+                            selectedTeamDetailMap[selectedItem.id] = useHelpingBonus ?
+                                getDetailMap(selectedItem, helpBonusCount) :
+                                baseTeamDetailMap[selectedItem.id];
                         }
                         const finalEnergy = getRecipeFinalEnergy(recipe, parameter);
                         const ingredientRows = recipe.ingredients.map(ingredient => {
@@ -282,23 +287,58 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             });
                             return {ingredient, dailyDetail, dailyCount, days, perPokemon};
                         });
-                        const totalWorkDaysResult = selectedTeamItems.length === 0 ? null : calculateMinimumWorkDaysDetail(
+                        const baseTotalWorkDaysResult = selectedTeamItems.length === 0 ? null : calculateMinimumWorkDaysDetail(
                             recipe.ingredients.map(ingredient => ingredient.count * mealCount),
                             selectedTeamItems.map(item =>
                                 recipe.ingredients.map(ingredient =>
-                                    selectedTeamDetailMap[item.id]?.[ingredient.name]?.total ?? 0
+                                    baseTeamDetailMap[item.id]?.[ingredient.name]?.total ?? 0
                                 )
                             ),
                         );
+                        const totalWorkDaysResult = useHelpingBonus && selectedTeamItems.length > 0 ?
+                            calculateMinimumWorkDaysDetail(
+                                recipe.ingredients.map(ingredient => ingredient.count * mealCount),
+                                selectedTeamItems.map(item =>
+                                    recipe.ingredients.map(ingredient =>
+                                        selectedTeamDetailMap[item.id]?.[ingredient.name]?.total ?? 0
+                                    )
+                                ),
+                            ) :
+                            baseTotalWorkDaysResult;
+                        const baseTotalWorkDays = baseTotalWorkDaysResult?.totalDays ?? null;
                         const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
+                        const baseEnergyPerDay = baseTotalWorkDays === null || baseTotalWorkDays <= 0 ? null :
+                            finalEnergy * mealCount / baseTotalWorkDays;
                         const energyPerDay = totalWorkDays === null || totalWorkDays <= 0 ? null :
                             finalEnergy * mealCount / totalWorkDays;
                         const contributionByPokemonId = new Map<number, number>();
-                        if (totalWorkDaysResult !== null && energyPerDay !== null && totalWorkDays > 0) {
+                        if (baseTotalWorkDaysResult !== null && baseEnergyPerDay !== null && baseTotalWorkDays > 0) {
+                            selectedTeamItems.forEach((item, index) => {
+                                const workDays = baseTotalWorkDaysResult.workDaysByPokemon[index] ?? 0;
+                                contributionByPokemonId.set(item.id, baseEnergyPerDay * workDays / baseTotalWorkDays);
+                            });
+                        }
+                        else if (totalWorkDaysResult !== null && energyPerDay !== null && totalWorkDays !== null && totalWorkDays > 0) {
                             selectedTeamItems.forEach((item, index) => {
                                 const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
                                 contributionByPokemonId.set(item.id, energyPerDay * workDays / totalWorkDays);
                             });
+                        }
+                        if (useHelpingBonus &&
+                            totalWorkDaysResult !== null &&
+                            energyPerDay !== null &&
+                            baseEnergyPerDay !== null &&
+                            totalWorkDays !== null &&
+                            totalWorkDays > 0 &&
+                            helpingBonusHolders.length > 0) {
+                            const helpingBonusGain = Math.max(0, energyPerDay - baseEnergyPerDay);
+                            const helpingBonusContribution = helpingBonusGain / helpingBonusHolders.length;
+                            for (const holder of helpingBonusHolders) {
+                                contributionByPokemonId.set(
+                                    holder.id,
+                                    (contributionByPokemonId.get(holder.id) ?? 0) + helpingBonusContribution,
+                                );
+                            }
                         }
 
                         return <Accordion key={recipeKey(recipe)} disableGutters sx={{mb: 0.5}}>
