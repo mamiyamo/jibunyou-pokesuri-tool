@@ -475,7 +475,12 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         sx={{minWidth: 0, width: '100%'}}
                                                     >
                                                         <Box sx={getHelpingBonusHighlightSx(hasHelpingBonus)}>
-                                                            <PokemonIcon idForm={selected.iv.idForm} size={24}/>
+                                                            <Stack spacing={0} alignItems="center" sx={{minWidth: 0}}>
+                                                                <Typography variant="caption" sx={{lineHeight: 1, whiteSpace: 'nowrap'}}>
+                                                                    Lv.{selected.iv.level}
+                                                                </Typography>
+                                                                <PokemonIcon idForm={selected.iv.idForm} size={24}/>
+                                                            </Stack>
                                                         </Box>
                                                         <Stack spacing={0} sx={{minWidth: 0}}>
                                                             <Typography
@@ -484,9 +489,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 title={createPokemonTooltipText(selected, t)}
                                                             >
                                                                 {getDisplayName(selected, t)}
-                                                            </Typography>
-                                                            <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                スキルLv.{selected.iv.skillLevel}
                                                             </Typography>
                                                             {contributionByPokemonId.has(selected.id) && (
                                                                 <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
@@ -536,7 +538,12 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     return <MenuItem key={item.id} value={item.id.toString()} disabled={isUsedByOther}>
                                                         <Stack direction="row" spacing={0.8} alignItems="center">
                                                             <Box sx={getHelpingBonusHighlightSx(hasHelpingBonus)}>
-                                                                <PokemonIcon idForm={item.iv.idForm} size={24}/>
+                                                                <Stack spacing={0} alignItems="center" sx={{minWidth: 0}}>
+                                                                    <Typography variant="caption" sx={{lineHeight: 1, whiteSpace: 'nowrap'}}>
+                                                                        Lv.{item.iv.level}
+                                                                    </Typography>
+                                                                    <PokemonIcon idForm={item.iv.idForm} size={24}/>
+                                                                </Stack>
                                                             </Box>
                                                             <Stack spacing={0} sx={{minWidth: 0}}>
                                                                 <Typography
@@ -544,9 +551,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                     title={createPokemonTooltipText(item, t)}
                                                                 >
                                                                     {getDisplayName(item, t)}
-                                                                </Typography>
-                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                    スキルLv.{item.iv.skillLevel}
                                                                 </Typography>
                                                                 {contributionByPokemonId.has(item.id) && (
                                                                     <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
