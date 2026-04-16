@@ -14,7 +14,7 @@ import { PokemonBoxItem } from '../../util/PokemonBox';
 import { StrengthParameter } from '../../util/PokemonStrength';
 import { loadBoxSortConfig, sortPokemonItems } from '../../util/PokemonBoxSort';
 import {
-    getDailyIngredientDetailMap, getRecipeFinalEnergy,
+    calculateMinimumWorkDays, getDailyIngredientDetailMap, getRecipeFinalEnergy,
     pokedayRecipeGroups, PokedayIngredientDailyDetail, PokedayRecipe,
 } from '../../util/Pokeday';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +30,7 @@ function recipeKey(recipe: PokedayRecipe): string {
 const BOX_SORT_CONFIG_CHANGED_EVENT = 'PstPokemonBoxSortConfigChanged';
 
 function formatDays(value: number): string {
-    return value.toFixed(1);
+    return value.toFixed(2);
 }
 
 function formatHoursMinutesFromDays(value: number): string {
@@ -264,7 +264,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             selectedTeamDetailMap[selectedItem.id] = getDetailMap(selectedItem, helpBonusCount);
                         }
                         const finalEnergy = getRecipeFinalEnergy(recipe, parameter);
-                        let totalDays: number | null = null;
                         const ingredientRows = recipe.ingredients.map(ingredient => {
                             let base = 0;
                             let skill = 0;
@@ -276,9 +275,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             const dailyDetail: PokedayIngredientDailyDetail = {base, skill, total: base + skill};
                             const dailyCount = dailyDetail?.total ?? 0;
                             const days = dailyCount > 0 ? ingredient.count / dailyCount : null;
-                            if (days !== null) {
-                                totalDays = totalDays === null ? days : Math.max(totalDays, days);
-                            }
                             const perPokemon = selectedTeamItems.map(item => {
                                 const detail = selectedTeamDetailMap[item.id]?.[ingredient.name] ??
                                     {base: 0, skill: 0, total: 0};
@@ -286,8 +282,16 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             });
                             return {ingredient, dailyDetail, dailyCount, days, perPokemon};
                         });
-                        const totalWorkDays = totalDays === null ? null : totalDays * mealCount;
-                        const energyPerDay = totalDays === null ? null : finalEnergy / totalDays;
+                        const totalWorkDays = selectedTeamItems.length === 0 ? null : calculateMinimumWorkDays(
+                            recipe.ingredients.map(ingredient => ingredient.count * mealCount),
+                            selectedTeamItems.map(item =>
+                                recipe.ingredients.map(ingredient =>
+                                    selectedTeamDetailMap[item.id]?.[ingredient.name]?.total ?? 0
+                                )
+                            ),
+                        );
+                        const energyPerDay = totalWorkDays === null || totalWorkDays <= 0 ? null :
+                            finalEnergy * mealCount / totalWorkDays;
 
                         return <Accordion key={recipeKey(recipe)} disableGutters sx={{mb: 0.5}}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -297,7 +301,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                         <Typography variant="body2">
                                             最終エナジー: {formatWithComma(finalEnergy)}
                                         </Typography>
-                                        <Stack direction={isSmallScreen ? 'column' : 'row'} spacing={0.2} alignItems="center">
+                                        <Stack direction={isSmallScreen ? 'column' : 'row'} spacing={0.2} alignItems="flex-start">
                                             <Typography variant="body2">
                                                 合計稼働時間／{mealCount}食あたり:
                                             </Typography>

@@ -1,9 +1,21 @@
 import { describe, expect, test } from 'vitest';
 import { PokemonBoxItem } from './PokemonBox';
 import PokemonIv from './PokemonIv';
-import { getDailyIngredientDetailMap } from './Pokeday';
+import { calculateMinimumWorkDays, getDailyIngredientDetailMap } from './Pokeday';
 
 describe('Pokeday', () => {
+    test('minimum work days are optimized across multiple pokemon', () => {
+        const totalDays = calculateMinimumWorkDays(
+            [40, 30],
+            [
+                [30, 0],
+                [10, 20],
+            ],
+        );
+
+        expect(totalDays).toBeCloseTo(2.3333333333);
+    });
+
     test('Hyper Cutter distributes skill ingredients across four fixed ingredients', () => {
         const boxItem = new PokemonBoxItem(new PokemonIv({
             pokemonName: 'Mawile',

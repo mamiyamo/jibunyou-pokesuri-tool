@@ -25,6 +25,8 @@ export type PokedayIngredientDailyDetail = {
     total: number;
 };
 
+const LP_EPSILON = 1e-9;
+
 export const pokedayRecipeGroups: {
     category: PokedayRecipeCategory;
     title: string;
@@ -239,6 +241,133 @@ const hyperCutterIngredientPool: IngredientName[] = [
 
 function roundHalfUp(value: number): number {
     return Math.floor(value + 0.5);
+}
+
+function solveLinearSystem(matrix: number[][], rhs: number[]): number[] | null {
+    const size = rhs.length;
+    const augmented = matrix.map((row, index) => [...row, rhs[index]]);
+    for (let col = 0; col < size; col++) {
+        let pivot = col;
+        for (let row = col + 1; row < size; row++) {
+            if (Math.abs(augmented[row][col]) > Math.abs(augmented[pivot][col])) {
+                pivot = row;
+            }
+        }
+        if (Math.abs(augmented[pivot][col]) < LP_EPSILON) {
+            return null;
+        }
+        if (pivot !== col) {
+            [augmented[col], augmented[pivot]] = [augmented[pivot], augmented[col]];
+        }
+        const pivotValue = augmented[col][col];
+        for (let i = col; i <= size; i++) {
+            augmented[col][i] /= pivotValue;
+        }
+        for (let row = 0; row < size; row++) {
+            if (row === col) {
+                continue;
+            }
+            const factor = augmented[row][col];
+            if (Math.abs(factor) < LP_EPSILON) {
+                continue;
+            }
+            for (let i = col; i <= size; i++) {
+                augmented[row][i] -= factor * augmented[col][i];
+            }
+        }
+    }
+    return augmented.map(row => row[size]);
+}
+
+function enumerateCombinations(
+    total: number,
+    choose: number,
+    start = 0,
+    current: number[] = [],
+    result: number[][] = [],
+): number[][] {
+    if (current.length === choose) {
+        result.push([...current]);
+        return result;
+    }
+    if (start >= total) {
+        return result;
+    }
+    for (let index = start; index < total; index++) {
+        current.push(index);
+        enumerateCombinations(total, choose, index + 1, current, result);
+        current.pop();
+    }
+    return result;
+}
+
+/**
+ * Calculate the minimum summed working days needed to satisfy all ingredient requirements.
+ *
+ * Each pokemon works in parallel, and the objective is the sum of active days across the team.
+ * `ratesByPokemon[i][j]` is the daily amount pokemon `i` can contribute to ingredient `j`.
+ */
+export function calculateMinimumWorkDays(
+    requirements: number[],
+    ratesByPokemon: number[][],
+): number | null {
+    const pokemonCount = ratesByPokemon.length;
+    const ingredientCount = requirements.length;
+    if (pokemonCount === 0 || ingredientCount === 0) {
+        return null;
+    }
+
+    const combinations = enumerateCombinations(ingredientCount + pokemonCount, pokemonCount);
+    let best: number | null = null;
+
+    for (const combination of combinations) {
+        const matrix: number[][] = [];
+        const rhs: number[] = [];
+        for (const constraintIndex of combination) {
+            if (constraintIndex < ingredientCount) {
+                const ingredientIndex = constraintIndex;
+                matrix.push(ratesByPokemon.map(pokemon => pokemon[ingredientIndex] ?? 0));
+                rhs.push(requirements[ingredientIndex] ?? 0);
+            }
+            else {
+                const pokemonIndex = constraintIndex - ingredientCount;
+                const row = new Array(pokemonCount).fill(0);
+                row[pokemonIndex] = 1;
+                matrix.push(row);
+                rhs.push(0);
+            }
+        }
+
+        const solution = solveLinearSystem(matrix, rhs);
+        if (solution === null) {
+            continue;
+        }
+        if (solution.some(value => !Number.isFinite(value) || value < -LP_EPSILON)) {
+            continue;
+        }
+
+        let feasible = true;
+        for (let ingredientIndex = 0; ingredientIndex < ingredientCount; ingredientIndex++) {
+            let total = 0;
+            for (let pokemonIndex = 0; pokemonIndex < pokemonCount; pokemonIndex++) {
+                total += (ratesByPokemon[pokemonIndex][ingredientIndex] ?? 0) * solution[pokemonIndex];
+            }
+            if (total + LP_EPSILON < requirements[ingredientIndex]) {
+                feasible = false;
+                break;
+            }
+        }
+        if (!feasible) {
+            continue;
+        }
+
+        const totalDays = solution.reduce((sum, value) => sum + value, 0);
+        if (best === null || totalDays < best) {
+            best = totalDays;
+        }
+    }
+
+    return best;
 }
 
 export function getRecipeDisplayEnergy(recipe: PokedayRecipe, parameter: StrengthParameter): number {
