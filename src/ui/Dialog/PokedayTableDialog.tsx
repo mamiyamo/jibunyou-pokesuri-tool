@@ -14,7 +14,7 @@ import { PokemonBoxItem } from '../../util/PokemonBox';
 import { StrengthParameter } from '../../util/PokemonStrength';
 import { loadBoxSortConfig, sortPokemonItems } from '../../util/PokemonBoxSort';
 import {
-    calculateMinimumWorkDays, getDailyIngredientDetailMap, getRecipeFinalEnergy,
+    calculateMinimumWorkDaysDetail, getDailyIngredientDetailMap, getRecipeFinalEnergy,
     pokedayRecipeGroups, PokedayIngredientDailyDetail, PokedayRecipe,
 } from '../../util/Pokeday';
 import { useTranslation } from 'react-i18next';
@@ -282,7 +282,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             });
                             return {ingredient, dailyDetail, dailyCount, days, perPokemon};
                         });
-                        const totalWorkDays = selectedTeamItems.length === 0 ? null : calculateMinimumWorkDays(
+                        const totalWorkDaysResult = selectedTeamItems.length === 0 ? null : calculateMinimumWorkDaysDetail(
                             recipe.ingredients.map(ingredient => ingredient.count * mealCount),
                             selectedTeamItems.map(item =>
                                 recipe.ingredients.map(ingredient =>
@@ -290,6 +290,13 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 )
                             ),
                         );
+                        const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
+                        const roleDaysByPokemonId = new Map<number, number>();
+                        if (totalWorkDaysResult !== null) {
+                            selectedTeamItems.forEach((item, index) => {
+                                roleDaysByPokemonId.set(item.id, totalWorkDaysResult.workDaysByPokemon[index] ?? 0);
+                            });
+                        }
                         const energyPerDay = totalWorkDays === null || totalWorkDays <= 0 ? null :
                             finalEnergy * mealCount / totalWorkDays;
 
@@ -431,12 +438,17 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                     direction="row"
                                                                     spacing={0.2}
                                                                     alignItems="center"
-                                                                >
-                                                                    <IngredientIcon name={ingredient.name} />
-                                                                    <Typography variant="caption">{formatDailyTotal(detail)}</Typography>
-                                                                </Stack>;
+                                                                    >
+                                                                        <IngredientIcon name={ingredient.name} />
+                                                                        <Typography variant="caption">{formatDailyTotal(detail)}</Typography>
+                                                                    </Stack>;
                                                             })}
                                                         </Stack>
+                                                            {totalWorkDaysResult !== null && roleDaysByPokemonId.has(selected.id) && (
+                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                    役割度: {formatDays(roleDaysByPokemonId.get(selected.id) ?? 0)}日
+                                                                </Typography>
+                                                            )}
                                                     </Stack>;
                                                 }}
                                             >
@@ -475,6 +487,11 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                     </Stack>;
                                                                 })}
                                                             </Stack>
+                                                            {totalWorkDaysResult !== null && roleDaysByPokemonId.has(item.id) && (
+                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                    役割度: {formatDays(roleDaysByPokemonId.get(item.id) ?? 0)}日
+                                                                </Typography>
+                                                            )}
                                                         </Stack>
                                                     </MenuItem>;
                                                 })}

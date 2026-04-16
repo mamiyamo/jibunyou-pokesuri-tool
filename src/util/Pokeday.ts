@@ -27,6 +27,11 @@ export type PokedayIngredientDailyDetail = {
 
 const LP_EPSILON = 1e-9;
 
+export type MinimumWorkDaysResult = {
+    totalDays: number;
+    workDaysByPokemon: number[];
+};
+
 export const pokedayRecipeGroups: {
     category: PokedayRecipeCategory;
     title: string;
@@ -307,10 +312,10 @@ function enumerateCombinations(
  * Each pokemon works in parallel, and the objective is the sum of active days across the team.
  * `ratesByPokemon[i][j]` is the daily amount pokemon `i` can contribute to ingredient `j`.
  */
-export function calculateMinimumWorkDays(
+export function calculateMinimumWorkDaysDetail(
     requirements: number[],
     ratesByPokemon: number[][],
-): number | null {
+): MinimumWorkDaysResult | null {
     const pokemonCount = ratesByPokemon.length;
     const ingredientCount = requirements.length;
     if (pokemonCount === 0 || ingredientCount === 0) {
@@ -318,7 +323,7 @@ export function calculateMinimumWorkDays(
     }
 
     const combinations = enumerateCombinations(ingredientCount + pokemonCount, pokemonCount);
-    let best: number | null = null;
+    let best: MinimumWorkDaysResult | null = null;
 
     for (const combination of combinations) {
         const matrix: number[][] = [];
@@ -362,12 +367,22 @@ export function calculateMinimumWorkDays(
         }
 
         const totalDays = solution.reduce((sum, value) => sum + value, 0);
-        if (best === null || totalDays < best) {
-            best = totalDays;
+        if (best === null || totalDays < best.totalDays) {
+            best = {
+                totalDays,
+                workDaysByPokemon: solution,
+            };
         }
     }
 
     return best;
+}
+
+export function calculateMinimumWorkDays(
+    requirements: number[],
+    ratesByPokemon: number[][],
+): number | null {
+    return calculateMinimumWorkDaysDetail(requirements, ratesByPokemon)?.totalDays ?? null;
 }
 
 export function getRecipeDisplayEnergy(recipe: PokedayRecipe, parameter: StrengthParameter): number {
