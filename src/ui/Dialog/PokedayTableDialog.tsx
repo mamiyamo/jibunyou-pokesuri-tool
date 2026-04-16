@@ -301,46 +301,59 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                         <Typography variant="body2">
                                             最終エナジー: {formatWithComma(finalEnergy)}
                                         </Typography>
-                                        <Stack direction={isSmallScreen ? 'column' : 'row'} spacing={0.2} alignItems="flex-start">
-                                            <Typography variant="body2">
+                                        <Box sx={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'max-content max-content',
+                                            columnGap: 0.75,
+                                            rowGap: 0,
+                                            alignItems: 'start',
+                                        }}>
+                                            <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
                                                 合計稼働時間／{mealCount}食あたり:
                                             </Typography>
-                                            <Stack spacing={0} alignItems={isSmallScreen ? 'flex-start' : 'flex-end'}>
-                                                {totalWorkDays === null ? (
-                                                    <Typography variant="body2">ー</Typography>
-                                                ) : (
-                                                    <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
-                                                        {formatDays(totalWorkDays)}日（{formatHoursMinutesFromDays(totalWorkDays)}）
-                                                    </Typography>
-                                                )}
-                                                {energyPerDay !== null && (
-                                                    <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
-                                                        1日あたりエナジー: {formatWithComma(Math.round(energyPerDay))}
-                                                    </Typography>
-                                                )}
-                                            </Stack>
-                                            <Box
-                                                onClick={e => e.stopPropagation()}
-                                                onMouseDown={e => e.stopPropagation()}
-                                                onPointerDown={e => e.stopPropagation()}
-                                                sx={{ml: isSmallScreen ? 0 : 1}}
+                                            {totalWorkDays === null ? (
+                                                <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                                    ー
+                                                </Typography>
+                                            ) : (
+                                                <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                                    {formatDays(totalWorkDays)}日（{formatHoursMinutesFromDays(totalWorkDays)}）
+                                                </Typography>
+                                            )}
+                                            <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                                1日あたりエナジー:
+                                            </Typography>
+                                            {energyPerDay !== null ? (
+                                                <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                                    {formatWithComma(Math.round(energyPerDay))}
+                                                </Typography>
+                                            ) : (
+                                                <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                                    ー
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                        <Box
+                                            onClick={e => e.stopPropagation()}
+                                            onMouseDown={e => e.stopPropagation()}
+                                            onPointerDown={e => e.stopPropagation()}
+                                            sx={{ml: isSmallScreen ? 0 : 1}}
+                                        >
+                                            <ToggleButtonGroup
+                                                exclusive
+                                                size="small"
+                                                value={mealCount}
+                                                onChange={onMealCountChange}
+                                                aria-label="meal count"
                                             >
-                                                <ToggleButtonGroup
-                                                    exclusive
-                                                    size="small"
-                                                    value={mealCount}
-                                                    onChange={onMealCountChange}
-                                                    aria-label="meal count"
-                                                >
-                                                    <ToggleButton value={1} aria-label="1 meal">
-                                                        1食
-                                                    </ToggleButton>
-                                                    <ToggleButton value={3} aria-label="3 meals">
-                                                        3食
-                                                    </ToggleButton>
-                                                </ToggleButtonGroup>
-                                            </Box>
-                                        </Stack>
+                                                <ToggleButton value={1} aria-label="1 meal">
+                                                    1食
+                                                </ToggleButton>
+                                                <ToggleButton value={3} aria-label="3 meals">
+                                                    3食
+                                                </ToggleButton>
+                                            </ToggleButtonGroup>
+                                        </Box>
                                     </Stack>
                                 </Stack>
                             </AccordionSummary>
