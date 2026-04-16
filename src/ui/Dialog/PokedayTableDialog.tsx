@@ -639,12 +639,19 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                     <PokemonIcon idForm={item.iv.idForm} size={24}/>
                                                                 </Stack>
                                                             </Box>
-                                                            <Stack spacing={0} sx={{minWidth: 0}}>
-                                                                <Typography variant="body2" sx={{wordBreak: 'break-word'}}>
-                                                                    {getDisplayName(item, t)}
+                                                        <Stack spacing={0} sx={{minWidth: 0}}>
+                                                            <Typography variant="body2" sx={{wordBreak: 'break-word'}}>
+                                                                {getDisplayName(item, t)}
+                                                            </Typography>
+                                                            {contributionByPokemonId.has(item.id) && (
+                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                    貢献度: {formatWithComma(
+                                                                        Math.round(contributionByPokemonId.get(item.id) ?? 0)
+                                                                    )}
                                                                 </Typography>
-                                                            </Stack>
+                                                            )}
                                                         </Stack>
+                                                    </Stack>
                                                     </TableCell>
                                                     <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
                                                         <Typography variant="body2" sx={{lineHeight: 1}}>
@@ -656,150 +663,159 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
-                                <TableContainer sx={{
-                                    overflowX: 'auto',
-                                    WebkitOverflowScrolling: 'touch',
-                                    maxWidth: '100%',
-                                }}>
-                                    <Table size="small" sx={{
-                                        width: isSmallScreen ? 'fit-content' : '100%',
-                                        minWidth: isSmallScreen ? 0 : '100%',
-                                        tableLayout: isSmallScreen ? 'fixed' : 'auto',
-                                    }}>
-                                        <TableHead>
-                                            <TableRow>
-                                                <TableCell sx={{
-                                                    px: isSmallScreen ? 0 : 2,
-                                                    pl: isSmallScreen ? 0 : 2,
-                                                    pr: isSmallScreen ? 0.25 : 2,
-                                                    width: isSmallScreen ? 30 : 'auto',
-                                                }}>
-                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                        食材
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell
-                                                    align="right"
-                                                    sx={{
-                                                        px: isSmallScreen ? 0 : 2,
-                                                        pl: isSmallScreen ? 0.1 : 2,
-                                                        pr: isSmallScreen ? 0.1 : 2,
-                                                        width: isSmallScreen ? 40 : 'auto',
-                                                    }}
-                                                >
-                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                        必要数
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell
-                                                    align="right"
-                                                    sx={{
-                                                        px: isSmallScreen ? 0.1 : 2,
-                                                        width: isSmallScreen ? 150 : 'auto',
-                                                    }}
-                                                >
-                                                    <Stack spacing={0} sx={{lineHeight: 1}}>
-                                                        <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                            24h個数
-                                                        </Typography>
-                                                        <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                            (食材+スキル)
-                                                        </Typography>
-                                                    </Stack>
-                                                </TableCell>
-                                                <TableCell
-                                                    align="right"
-                                                    sx={{
-                                                        px: isSmallScreen ? 0.1 : 2,
-                                                        width: isSmallScreen ? 70 : 'auto',
-                                                    }}
-                                                >
-                                                    <Stack spacing={0} alignItems="flex-end">
-                                                        <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                            必要日数
-                                                        </Typography>
-                                                    </Stack>
-                                                </TableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                            {ingredientRows.map(row => <TableRow key={`${recipeId}:${row.ingredient.name}`}>
-                                                <TableCell sx={{
-                                                    px: isSmallScreen ? 0 : 2,
-                                                    pl: isSmallScreen ? 0 : 2,
-                                                    pr: isSmallScreen ? 0.25 : 2,
-                                                    width: isSmallScreen ? 24 : 'auto',
-                                                }}>
-                                                    <IngredientIcon name={row.ingredient.name} />
-                                                </TableCell>
-                                                <TableCell
-                                                    align="right"
-                                                    sx={{
-                                                        px: isSmallScreen ? 0 : 2,
-                                                        pl: isSmallScreen ? 0.1 : 2,
-                                                        pr: isSmallScreen ? 0.1 : 2,
-                                                        width: isSmallScreen ? 36 : 'auto',
-                                                    }}
-                                                >
-                                                    {formatWithComma(row.ingredient.count)}
-                                                </TableCell>
-                                                <TableCell
-                                                    align="right"
-                                                    sx={{
-                                                        px: isSmallScreen ? 0.1 : 2,
-                                                        width: isSmallScreen ? 72 : 'auto',
-                                                        overflow: 'hidden',
-                                                        whiteSpace: 'nowrap',
-                                                    }}
-                                                >
-                                                    {selectedTeamItems.length === 0 || row.dailyCount <= 0 ?
-                                                        'ー' :
-                                                        <Stack spacing={0} alignItems="flex-end" sx={{minWidth: 0, overflow: 'hidden'}}>
-                                                            {row.perPokemon.map(({item, detail}) => {
-                                                                if (detail.total <= 0) {
-                                                                    return null;
-                                                                }
-                                                                return <Stack
-                                                                    key={`${recipeId}:${row.ingredient.name}:${item.id}`}
-                                                                    direction="row"
-                                                                    spacing={0.1}
-                                                                    alignItems="center"
-                                                                    sx={{minWidth: 0}}
-                                                                >
-                                                                    <PokemonIcon idForm={item.iv.idForm} size={16}/>
-                                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                        {formatDailyDetail(detail)}
+                                <Accordion disableGutters sx={{mb: 0.5}}>
+                                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                        <Typography variant="subtitle2">
+                                            食材表
+                                        </Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails sx={{pt: 0}}>
+                                        <TableContainer sx={{
+                                            overflowX: 'auto',
+                                            WebkitOverflowScrolling: 'touch',
+                                            maxWidth: '100%',
+                                        }}>
+                                            <Table size="small" sx={{
+                                                width: isSmallScreen ? 'fit-content' : '100%',
+                                                minWidth: isSmallScreen ? 0 : '100%',
+                                                tableLayout: isSmallScreen ? 'fixed' : 'auto',
+                                            }}>
+                                                <TableHead>
+                                                    <TableRow>
+                                                        <TableCell sx={{
+                                                            px: isSmallScreen ? 0 : 2,
+                                                            pl: isSmallScreen ? 0 : 2,
+                                                            pr: isSmallScreen ? 0.25 : 2,
+                                                            width: isSmallScreen ? 30 : 'auto',
+                                                        }}>
+                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                食材
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0 : 2,
+                                                                pl: isSmallScreen ? 0.1 : 2,
+                                                                pr: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 40 : 'auto',
+                                                            }}
+                                                        >
+                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                必要数
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 150 : 'auto',
+                                                            }}
+                                                        >
+                                                            <Stack spacing={0} sx={{lineHeight: 1}}>
+                                                                <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                    24h個数
+                                                                </Typography>
+                                                                <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                    (食材+スキル)
+                                                                </Typography>
+                                                            </Stack>
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 70 : 'auto',
+                                                            }}
+                                                        >
+                                                            <Stack spacing={0} alignItems="flex-end">
+                                                                <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                    必要日数
+                                                                </Typography>
+                                                            </Stack>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                </TableHead>
+                                                <TableBody>
+                                                    {ingredientRows.map(row => <TableRow key={`${recipeId}:${row.ingredient.name}`}>
+                                                        <TableCell sx={{
+                                                            px: isSmallScreen ? 0 : 2,
+                                                            pl: isSmallScreen ? 0 : 2,
+                                                            pr: isSmallScreen ? 0.25 : 2,
+                                                            width: isSmallScreen ? 24 : 'auto',
+                                                        }}>
+                                                            <IngredientIcon name={row.ingredient.name} />
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0 : 2,
+                                                                pl: isSmallScreen ? 0.1 : 2,
+                                                                pr: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 36 : 'auto',
+                                                            }}
+                                                        >
+                                                            {formatWithComma(row.ingredient.count)}
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 72 : 'auto',
+                                                                overflow: 'hidden',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            {selectedTeamItems.length === 0 || row.dailyCount <= 0 ?
+                                                                'ー' :
+                                                                <Stack spacing={0} alignItems="flex-end" sx={{minWidth: 0, overflow: 'hidden'}}>
+                                                                    {row.perPokemon.map(({item, detail}) => {
+                                                                        if (detail.total <= 0) {
+                                                                            return null;
+                                                                        }
+                                                                        return <Stack
+                                                                            key={`${recipeId}:${row.ingredient.name}:${item.id}`}
+                                                                            direction="row"
+                                                                            spacing={0.1}
+                                                                            alignItems="center"
+                                                                            sx={{minWidth: 0}}
+                                                                        >
+                                                                            <PokemonIcon idForm={item.iv.idForm} size={16}/>
+                                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                                {formatDailyDetail(detail)}
+                                                                            </Typography>
+                                                                        </Stack>;
+                                                                    })}
+                                                                    <Typography variant="caption" sx={{fontWeight: 'bold', lineHeight: 1}}>
+                                                                        合計 {formatDailyTotal(row.dailyDetail)}
                                                                     </Typography>
-                                                                </Stack>;
-                                                            })}
-                                                            <Typography variant="caption" sx={{fontWeight: 'bold', lineHeight: 1}}>
-                                                                合計 {formatDailyTotal(row.dailyDetail)}
-                                                            </Typography>
-                                                        </Stack>}
-                                                </TableCell>
-                                                <TableCell
-                                                    align="right"
-                                                    sx={{
-                                                        px: isSmallScreen ? 0.1 : 2,
-                                                        width: isSmallScreen ? 52 : 'auto',
-                                                        whiteSpace: 'nowrap',
-                                                    }}
-                                                >
-                                                    {row.days === null ? 'ー' : (
-                                                        <Stack spacing={0} alignItems="flex-end">
-                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                {formatDays(row.days)}日
-                                                            </Typography>
-                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                {formatHoursMinutesFromDays(row.days)}
-                                                            </Typography>
-                                                        </Stack>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>)}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
+                                                                </Stack>}
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 52 : 'auto',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            {row.days === null ? 'ー' : (
+                                                                <Stack spacing={0} alignItems="flex-end">
+                                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                        {formatDays(row.days)}日
+                                                                    </Typography>
+                                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                        {formatHoursMinutesFromDays(row.days)}
+                                                                    </Typography>
+                                                                </Stack>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>)}
+                                                </TableBody>
+                                            </Table>
+                                        </TableContainer>
+                                    </AccordionDetails>
+                                </Accordion>
                             </AccordionDetails>
                         </Accordion>;
                     })}
