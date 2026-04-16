@@ -71,10 +71,29 @@ function createPokemonTooltipText(item: PokemonBoxItem, t: (key: string) => stri
     return [
         getDisplayName(item, t),
         `Lv.${iv.level}`,
+        `スキルLv.${iv.skillLevel}`,
         `性格:${t(`natures.${iv.nature.name}`)}`,
         `食材タイプ:${iv.ingredient}`,
         `サブスキル:${skills || 'なし'}`,
     ].join('\n');
+}
+
+function getHelpingBonusHighlightSx(hasHelpingBonus: boolean) {
+    return hasHelpingBonus ? {
+        display: 'inline-flex',
+        borderRadius: '0.5rem',
+        padding: '2px',
+        border: '2px solid #e0b400',
+        backgroundColor: 'rgba(255, 224, 102, 0.16)',
+        boxShadow: '0 0 0 1px rgba(224, 180, 0, 0.18) inset',
+        lineHeight: 0,
+    } : {
+        display: 'inline-flex',
+        borderRadius: '0.5rem',
+        padding: '2px',
+        border: '2px solid transparent',
+        lineHeight: 0,
+    };
 }
 
 const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
@@ -447,13 +466,17 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     if (selected === null) {
                                                         return '未選択';
                                                     }
+                                                    const hasHelpingBonus = useHelpingBonus &&
+                                                        selected.iv.hasHelpingBonusInActiveSubSkills;
                                                     return <Stack
                                                         direction={isSmallScreen ? 'column' : 'row'}
                                                         spacing={0.6}
                                                         alignItems={isSmallScreen ? 'flex-start' : 'center'}
                                                         sx={{minWidth: 0, width: '100%'}}
                                                     >
-                                                        <PokemonIcon idForm={selected.iv.idForm} size={24}/>
+                                                        <Box sx={getHelpingBonusHighlightSx(hasHelpingBonus)}>
+                                                            <PokemonIcon idForm={selected.iv.idForm} size={24}/>
+                                                        </Box>
                                                         <Stack spacing={0} sx={{minWidth: 0}}>
                                                             <Typography
                                                                 variant="body2"
@@ -461,6 +484,9 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 title={createPokemonTooltipText(selected, t)}
                                                             >
                                                                 {getDisplayName(selected, t)}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                スキルLv.{selected.iv.skillLevel}
                                                             </Typography>
                                                             {contributionByPokemonId.has(selected.id) && (
                                                                 <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
@@ -505,15 +531,22 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 )}
                                                 {isSelectOpen && orderedBoxItems.map(item => {
                                                     const isUsedByOther = selectedIds.includes(item.id) && item.id !== value;
+                                                    const hasHelpingBonus = useHelpingBonus &&
+                                                        item.iv.hasHelpingBonusInActiveSubSkills;
                                                     return <MenuItem key={item.id} value={item.id.toString()} disabled={isUsedByOther}>
                                                         <Stack direction="row" spacing={0.8} alignItems="center">
-                                                            <PokemonIcon idForm={item.iv.idForm} size={24}/>
+                                                            <Box sx={getHelpingBonusHighlightSx(hasHelpingBonus)}>
+                                                                <PokemonIcon idForm={item.iv.idForm} size={24}/>
+                                                            </Box>
                                                             <Stack spacing={0} sx={{minWidth: 0}}>
                                                                 <Typography
                                                                     variant="body2"
                                                                     title={createPokemonTooltipText(item, t)}
                                                                 >
                                                                     {getDisplayName(item, t)}
+                                                                </Typography>
+                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                    スキルLv.{item.iv.skillLevel}
                                                                 </Typography>
                                                                 {contributionByPokemonId.has(item.id) && (
                                                                     <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
