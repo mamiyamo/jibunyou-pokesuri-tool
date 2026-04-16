@@ -297,13 +297,34 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                 <Stack sx={{width: '100%'}} spacing={0.5}>
                                     <Typography variant="subtitle2">{recipe.name}</Typography>
-                                    <Stack direction="row" spacing={2} flexWrap="wrap">
+                                    <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-start">
                                         <Typography variant="body2">
                                             最終エナジー: {formatWithComma(finalEnergy)}
                                         </Typography>
+                                        <Box
+                                            onClick={e => e.stopPropagation()}
+                                            onMouseDown={e => e.stopPropagation()}
+                                            onPointerDown={e => e.stopPropagation()}
+                                            sx={{ml: isSmallScreen ? 0 : 1}}
+                                        >
+                                            <ToggleButtonGroup
+                                                exclusive
+                                                size="small"
+                                                value={mealCount}
+                                                onChange={onMealCountChange}
+                                                aria-label="meal count"
+                                            >
+                                                <ToggleButton value={1} aria-label="1 meal">
+                                                    1食
+                                                </ToggleButton>
+                                                <ToggleButton value={3} aria-label="3 meals">
+                                                    3食
+                                                </ToggleButton>
+                                                </ToggleButtonGroup>
+                                            </Box>
                                         <Box sx={{
                                             display: 'grid',
-                                            gridTemplateColumns: 'max-content max-content',
+                                            gridTemplateColumns: isSmallScreen ? '9.2rem max-content' : '11rem max-content',
                                             columnGap: 0.75,
                                             rowGap: 0,
                                             alignItems: 'start',
@@ -332,27 +353,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     ー
                                                 </Typography>
                                             )}
-                                        </Box>
-                                        <Box
-                                            onClick={e => e.stopPropagation()}
-                                            onMouseDown={e => e.stopPropagation()}
-                                            onPointerDown={e => e.stopPropagation()}
-                                            sx={{ml: isSmallScreen ? 0 : 1}}
-                                        >
-                                            <ToggleButtonGroup
-                                                exclusive
-                                                size="small"
-                                                value={mealCount}
-                                                onChange={onMealCountChange}
-                                                aria-label="meal count"
-                                            >
-                                                <ToggleButton value={1} aria-label="1 meal">
-                                                    1食
-                                                </ToggleButton>
-                                                <ToggleButton value={3} aria-label="3 meals">
-                                                    3食
-                                                </ToggleButton>
-                                            </ToggleButtonGroup>
                                         </Box>
                                     </Stack>
                                 </Stack>
