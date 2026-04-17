@@ -405,7 +405,7 @@ export function createPokedayHelpParameterWith({
     baseParameter,
 }: {
     helpBonusCount: number;
-    baseParameter?: Pick<StrengthParameter, 'event'|'fieldIndex'|'expertEffect'|'useSkillPity'>;
+    baseParameter?: Pick<StrengthParameter, 'event'|'fieldIndex'|'expertEffect'|'useSkillPity'|'isGoodCampTicketSet'>;
 }): StrengthParameter {
     const helpBonus = Math.max(0, Math.min(4, Math.floor(helpBonusCount))) as 0|1|2|3|4;
     return createStrengthParameter({
@@ -417,6 +417,7 @@ export function createPokedayHelpParameterWith({
         fieldIndex: baseParameter?.fieldIndex ?? noFavoriteFieldIndex,
         expertEffect: baseParameter?.expertEffect ?? 'berry',
         useSkillPity: baseParameter?.useSkillPity ?? false,
+        isGoodCampTicketSet: baseParameter?.isGoodCampTicketSet ?? false,
         helpBonusCount: helpBonus,
     });
 }
