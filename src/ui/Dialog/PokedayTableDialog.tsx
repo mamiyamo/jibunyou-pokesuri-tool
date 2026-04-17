@@ -209,6 +209,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         getIngredientBaselineDetailMaps(pokedayParameter, ingredientNames)
     ), [ingredientNames, pokedayParameter]);
     const eventLabel = parameter.event === 'none' ? 'なし' : t(`events.${parameter.event}`);
+    const fieldLabel = t(`area.${parameter.fieldIndex}`);
     const energySettingLabel = parameter.isEnergyAlwaysFull
         ? '常に80%固定'
         : `設定通り(${parameter.sleepScore}%)`;
@@ -308,7 +309,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                 料理の最終エナジーと、必要な食材を集めるのにかかる稼働時間を見ます。
             </Typography>
             <Typography sx={{mb: 2}} variant="body2" color="text.secondary">
-                参照中の設定: レシピレベル {parameter.recipeLevel} / レシピボーナス {parameter.recipeBonus}% / フィールドボーナス {parameter.fieldBonus}% / 元気 {energySettingLabel} / タップ {tapSettingLabel} / スキル天井 {parameter.useSkillPity ? 'ON' : 'OFF'} / いいキャンプ {parameter.isGoodCampTicketSet ? 'ON' : 'OFF'} / イベント {eventLabel}
+                参照中の設定: フィールド {fieldLabel} / レシピレベル {parameter.recipeLevel} / レシピボーナス {parameter.recipeBonus}% / フィールドボーナス {parameter.fieldBonus}% / 元気 {energySettingLabel} / タップ {tapSettingLabel} / スキル天井 {parameter.useSkillPity ? 'ON' : 'OFF'} / いいキャンプ {parameter.isGoodCampTicketSet ? 'ON' : 'OFF'} / イベント {eventLabel}
             </Typography>
             <Accordion disableGutters sx={{mb: 1}}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -317,6 +318,8 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                 <AccordionDetails sx={{pt: 0}}>
                     <Typography variant="body2" sx={{mb: 1}}>
                         各食材の基準は、固定の基準ポケモンを今の設定で毎回再計算した1日供給量です。
+                        いいキャンプチケットやイベント、元気設定、タップ頻度もここに反映されます。
+                        イワパレスのように複数食材を持ってくるポケモンも、そのポケモン自身の実際の食材内訳で再計算しています。
                         その基準必要日数に対して、現在の編成がどれだけ短縮できるかを差分で見ています。
                     </Typography>
                     <TableContainer sx={{overflowX: 'auto', maxWidth: '100%'}}>
@@ -336,8 +339,14 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                         return null;
                                     }
                                     return <TableRow key={name}>
-                                        <TableCell>{name}</TableCell>
-                                        <TableCell>{source.pokemonName} / {source.ingredientType}</TableCell>
+                                        <TableCell sx={{width: 56}}>
+                                            <Box title={t(`ingredients.${name}`)} sx={{display: 'inline-flex', alignItems: 'center'}}>
+                                                <IngredientIcon name={name} />
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                            {t(`pokemons.${source.pokemonName}`)} / {source.ingredientType}
+                                        </TableCell>
                                         <TableCell>{formatDailyTotal(baselineDetail)}</TableCell>
                                     </TableRow>;
                                 })}
