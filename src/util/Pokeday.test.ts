@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'vitest';
 import { PokemonBoxItem } from './PokemonBox';
 import PokemonIv from './PokemonIv';
-import { calculateMinimumWorkDays, getDailyIngredientDetailMap } from './Pokeday';
+import {
+    calculateMinimumWorkDays,
+    createPokedayHelpParameter,
+    createPokedayHelpParameterWith,
+    getDailyIngredientDetailMap,
+    getIngredientBaselineDetailMap,
+    ingredientBaselineSources,
+} from './Pokeday';
 
 describe('Pokeday', () => {
     test('minimum work days are optimized across multiple pokemon', () => {
@@ -29,5 +36,20 @@ describe('Pokeday', () => {
         expect(detailMap.tomato?.skill ?? 0).toBeGreaterThan(0);
         expect(detailMap.corn?.skill ?? 0).toBeGreaterThan(0);
         expect(detailMap.milk?.skill ?? 0).toBe(0);
+    });
+
+    test('ingredient baseline sources are fixed but counts depend on parameter', () => {
+        expect(ingredientBaselineSources.oil.pokemonName).toBe('Toxicroak');
+
+        const base = getIngredientBaselineDetailMap(createPokedayHelpParameter());
+        const camp = getIngredientBaselineDetailMap(
+            createPokedayHelpParameterWith({
+                helpBonusCount: 0,
+                baseParameter: { isGoodCampTicketSet: true },
+            }),
+        );
+
+        expect((camp.milk?.total ?? 0)).toBeGreaterThan(base.milk?.total ?? 0);
+        expect((camp.oil?.total ?? 0)).toBeGreaterThan(base.oil?.total ?? 0);
     });
 });

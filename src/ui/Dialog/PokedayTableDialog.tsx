@@ -15,9 +15,9 @@ import { StrengthParameter } from '../../util/PokemonStrength';
 import { loadBoxSortConfig, sortPokemonItems } from '../../util/PokemonBoxSort';
 import {
     calculateMinimumWorkDaysDetail, getDailyIngredientDetailMap, getRecipeFinalEnergy,
-    pokedayRecipeGroups, PokedayIngredientDailyDetail, PokedayRecipe,
+    getIngredientBaselineDetailMaps, pokedayRecipeGroups, PokedayIngredientDailyDetail,
+    PokedayRecipe,
 } from '../../util/Pokeday';
-import { calculatePokemonDailySummary } from '../../util/DailyPlanner';
 import { useTranslation } from 'react-i18next';
 import IngredientIcon from '../IvCalc/IngredientIcon';
 import PokemonIcon from '../IvCalc/PokemonIcon';
@@ -148,6 +148,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         pokedayParameter.expertEffect,
         pokedayParameter.useSkillPity,
         pokedayParameter.isGoodCampTicketSet,
+        pokedayParameter.isEnergyAlwaysFull,
+        pokedayParameter.sleepScore,
+        pokedayParameter.tapFrequency,
+        pokedayParameter.tapFrequencyAsleep,
     ]);
     React.useEffect(() => {
         const updateSortConfig = () => {
@@ -189,6 +193,9 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         }
         return [...names];
     }, []);
+    const ingredientBaselineDetailMaps = React.useMemo(() => (
+        getIngredientBaselineDetailMaps(pokedayParameter, ingredientNames)
+    ), [ingredientNames, pokedayParameter]);
     const baseDailyCountMap = React.useMemo(() => {
         const ret: Record<number, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>> = {};
         for (const boxItem of boxItems) {
@@ -299,22 +306,98 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const selectedTeamItems = team
                             .map(id => id === '' ? null : boxItems.find(x => x.id === id) ?? null)
                             .filter((x): x is PokemonBoxItem => x !== null);
-                        const helpingBonusHolders = selectedTeamItems
-                            .filter(item => item.iv.hasHelpingBonusInActiveSubSkills);
-                        const baseTeamDetailMap:
-                            Record<number, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>> = {};
-                        const selectedTeamDetailMap:
-                            Record<number, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>> = {};
-                        for (const selectedItem of selectedTeamItems) {
-                            baseTeamDetailMap[selectedItem.id] = getDetailMap(selectedItem, 0);
-                            const helpBonusCount = useHelpingBonus ?
-                                helpingBonusHolders.filter(x => x.id !== selectedItem.id).length :
-                                0;
-                            selectedTeamDetailMap[selectedItem.id] = useHelpingBonus ?
-                                getDetailMap(selectedItem, helpBonusCount) :
-                                baseTeamDetailMap[selectedItem.id];
-                        }
                         const finalEnergy = getRecipeFinalEnergy(recipe, parameter);
+                        const recipeRequirements = recipe.ingredients.map(ingredient => ingredient.count * mealCount);
+                        const recipeBaselineRows = recipe.ingredients
+                            .map(ingredient =>
+                                recipe.ingredients.map(targetIngredient =>
+                                    ingredientBaselineDetailMaps[ingredient.name]?.[targetIngredient.name]?.total ?? 0
+                                )
+                            );
+                        const buildTeamDetailMap = (
+                            items: PokemonBoxItem[],
+                            disabledHelpingBonusHolderId: number | null = null,
+                        ) => {
+                            const helpingBonusHolders = useHelpingBonus
+                                ? items.filter(item =>
+                                    item.iv.hasHelpingBonusInActiveSubSkills &&
+                                    item.id !== disabledHelpingBonusHolderId
+                                )
+                                : [];
+                            const detailMap: Record<number, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>> = {};
+                            for (const selectedItem of items) {
+                                const helpBonusCount = useHelpingBonus
+                                    ? helpingBonusHolders.filter(x => x.id !== selectedItem.id).length
+                                    : 0;
+                                detailMap[selectedItem.id] = useHelpingBonus ?
+                                    getDetailMap(selectedItem, helpBonusCount) :
+                                    getDetailMap(selectedItem, 0);
+                            }
+                            return detailMap;
+                        };
+                        const buildRatesByPokemon = (
+                            items: PokemonBoxItem[],
+                            disabledHelpingBonusHolderId: number | null = null,
+                        ) => {
+                            const detailMap = buildTeamDetailMap(items, disabledHelpingBonusHolderId);
+                            return items.map(item =>
+                                recipe.ingredients.map(ingredient =>
+                                    detailMap[item.id]?.[ingredient.name]?.total ?? 0
+                                )
+                            );
+                        };
+                        const buildWorkDaysResult = (
+                            items: PokemonBoxItem[],
+                            disabledHelpingBonusHolderId: number | null = null,
+                        ) => calculateMinimumWorkDaysDetail(
+                            recipeRequirements,
+                            [...buildRatesByPokemon(items, disabledHelpingBonusHolderId), ...recipeBaselineRows],
+                        );
+                        const totalWorkDaysResult = selectedTeamItems.length === 0 ? null :
+                            buildWorkDaysResult(selectedTeamItems);
+                        const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
+                        const energyPerDay = totalWorkDays === null || totalWorkDays <= 0 ? null :
+                            finalEnergy * mealCount / totalWorkDays;
+                        const pokemonRows = totalWorkDaysResult === null ? [] : selectedTeamItems.map((item, index) => {
+                            const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
+                            return {item, workDays};
+                        });
+                        const contributionByPokemonId = new Map<number, number>();
+                        const helpingBonusContributionByPokemonId = new Map<number, number>();
+                        if (totalWorkDaysResult !== null && totalWorkDays !== null && totalWorkDays > 0) {
+                            for (const selectedItem of selectedTeamItems) {
+                                const absentResult = buildWorkDaysResult(
+                                    selectedTeamItems.filter(item => item.id !== selectedItem.id),
+                                );
+                                if (absentResult !== null) {
+                                    contributionByPokemonId.set(
+                                        selectedItem.id,
+                                        Math.max(0, absentResult.totalDays - totalWorkDays),
+                                    );
+                                }
+                                if (useHelpingBonus && selectedItem.iv.hasHelpingBonusInActiveSubSkills) {
+                                    const noBonusResult = buildWorkDaysResult(
+                                        selectedTeamItems,
+                                        selectedItem.id,
+                                    );
+                                    if (noBonusResult !== null) {
+                                        helpingBonusContributionByPokemonId.set(
+                                            selectedItem.id,
+                                            Math.max(0, noBonusResult.totalDays - totalWorkDays),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        const powerPerDayByPokemonId = new Map<number, number>();
+                        if (totalWorkDaysResult !== null && totalWorkDays !== null && totalWorkDays > 0) {
+                            selectedTeamItems.forEach((item, index) => {
+                                const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
+                                const contribution = contributionByPokemonId.get(item.id) ?? 0;
+                                powerPerDayByPokemonId.set(item.id, workDays > 0 ? contribution / workDays : 0);
+                            });
+                        }
+                        const selectedTeamDetailMap = buildTeamDetailMap(selectedTeamItems);
                         const ingredientRows = recipe.ingredients.map(ingredient => {
                             let base = 0;
                             let skill = 0;
@@ -324,79 +407,13 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 skill += detail?.skill ?? 0;
                             }
                             const dailyDetail: PokedayIngredientDailyDetail = {base, skill, total: base + skill};
-                            const dailyCount = dailyDetail?.total ?? 0;
+                            const dailyCount = dailyDetail.total;
                             const days = dailyCount > 0 ? ingredient.count / dailyCount : null;
                             const perPokemon = selectedTeamItems.map(item => {
-                                const detail = selectedTeamDetailMap[item.id]?.[ingredient.name] ??
-                                    {base: 0, skill: 0, total: 0};
+                                const detail = selectedTeamDetailMap[item.id]?.[ingredient.name] ?? {base: 0, skill: 0, total: 0};
                                 return {item, detail};
                             });
                             return {ingredient, dailyDetail, dailyCount, days, perPokemon};
-                        });
-                        const baseTotalWorkDaysResult = selectedTeamItems.length === 0 ? null : calculateMinimumWorkDaysDetail(
-                            recipe.ingredients.map(ingredient => ingredient.count * mealCount),
-                            selectedTeamItems.map(item =>
-                                recipe.ingredients.map(ingredient =>
-                                    baseTeamDetailMap[item.id]?.[ingredient.name]?.total ?? 0
-                                )
-                            ),
-                        );
-                        const totalWorkDaysResult = useHelpingBonus && selectedTeamItems.length > 0 ?
-                            calculateMinimumWorkDaysDetail(
-                                recipe.ingredients.map(ingredient => ingredient.count * mealCount),
-                                selectedTeamItems.map(item =>
-                                    recipe.ingredients.map(ingredient =>
-                                        selectedTeamDetailMap[item.id]?.[ingredient.name]?.total ?? 0
-                                    )
-                                ),
-                            ) :
-                            baseTotalWorkDaysResult;
-                        const baseTotalWorkDays = baseTotalWorkDaysResult?.totalDays ?? null;
-                        const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
-                        const baseEnergyPerDay = baseTotalWorkDays === null || baseTotalWorkDays <= 0 ? null :
-                            finalEnergy * mealCount / baseTotalWorkDays;
-                        const energyPerDay = totalWorkDays === null || totalWorkDays <= 0 ? null :
-                            finalEnergy * mealCount / totalWorkDays;
-                        const pokemonRows = totalWorkDaysResult === null ? [] : selectedTeamItems.map((item, index) => {
-                            const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
-                            return {item, workDays};
-                        });
-                        const contributionByPokemonId = new Map<number, number>();
-                        if (baseTotalWorkDaysResult !== null && baseEnergyPerDay !== null && baseTotalWorkDays > 0) {
-                            selectedTeamItems.forEach((item, index) => {
-                                const workDays = baseTotalWorkDaysResult.workDaysByPokemon[index] ?? 0;
-                                contributionByPokemonId.set(item.id, baseEnergyPerDay * workDays / baseTotalWorkDays);
-                            });
-                        }
-                        else if (totalWorkDaysResult !== null && energyPerDay !== null && totalWorkDays !== null && totalWorkDays > 0) {
-                            selectedTeamItems.forEach((item, index) => {
-                                const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
-                                contributionByPokemonId.set(item.id, energyPerDay * workDays / totalWorkDays);
-                            });
-                        }
-                        if (useHelpingBonus &&
-                            totalWorkDaysResult !== null &&
-                            energyPerDay !== null &&
-                            baseEnergyPerDay !== null &&
-                            totalWorkDays !== null &&
-                            totalWorkDays > 0 &&
-                            helpingBonusHolders.length > 0) {
-                            const helpingBonusGain = Math.max(0, energyPerDay - baseEnergyPerDay);
-                            const helpingBonusContribution = helpingBonusGain / helpingBonusHolders.length;
-                            for (const holder of helpingBonusHolders) {
-                                contributionByPokemonId.set(
-                                    holder.id,
-                                    (contributionByPokemonId.get(holder.id) ?? 0) + helpingBonusContribution,
-                                );
-                            }
-                        }
-                        const powerByPokemonId = new Map<number, number>();
-                        selectedTeamItems.forEach(item => {
-                            const helpBonusCount = useHelpingBonus ?
-                                helpingBonusHolders.filter(x => x.id !== item.id).length :
-                                0;
-                            const summary = calculatePokemonDailySummary(item, baseParameter, helpBonusCount);
-                            powerByPokemonId.set(item.id, summary.totalEnergy);
                         });
 
                         return <Accordion key={recipeKey(recipe)} disableGutters sx={{mb: 0.5}}>
@@ -529,11 +546,18 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             >
                                                                 {getDisplayName(selected, t)}
                                                             </Typography>
-                                                            {powerByPokemonId.has(selected.id) && (
+                                                            {powerPerDayByPokemonId.has(selected.id) && (
                                                                 <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
                                                                     貢献パワー: {formatWithComma(
-                                                                        Math.round(powerByPokemonId.get(selected.id) ?? 0)
+                                                                        Math.round(powerPerDayByPokemonId.get(selected.id) ?? 0)
                                                                     )}
+                                                                </Typography>
+                                                            )}
+                                                            {helpingBonusContributionByPokemonId.has(selected.id) && (
+                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                    おてつだいボーナス貢献: {formatDays(
+                                                                        helpingBonusContributionByPokemonId.get(selected.id) ?? 0
+                                                                    )}日
                                                                 </Typography>
                                                             )}
                                                         </Stack>
@@ -591,11 +615,18 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 >
                                                                     {getDisplayName(item, t)}
                                                                 </Typography>
-                                                                {powerByPokemonId.has(item.id) && (
+                                                                {powerPerDayByPokemonId.has(item.id) && (
                                                                     <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
                                                                         貢献パワー: {formatWithComma(
-                                                                            Math.round(powerByPokemonId.get(item.id) ?? 0)
+                                                                            Math.round(powerPerDayByPokemonId.get(item.id) ?? 0)
                                                                         )}
+                                                                    </Typography>
+                                                                )}
+                                                                {helpingBonusContributionByPokemonId.has(item.id) && (
+                                                                    <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                        おてつだいボーナス貢献: {formatDays(
+                                                                            helpingBonusContributionByPokemonId.get(item.id) ?? 0
+                                                                        )}日
                                                                     </Typography>
                                                                 )}
                                                             </Stack>
@@ -676,9 +707,14 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             </Typography>
                                                             {contributionByPokemonId.has(item.id) && (
                                                                 <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                    貢献度: {formatWithComma(
-                                                                        Math.round(contributionByPokemonId.get(item.id) ?? 0)
-                                                                    )}
+                                                                    貢献度: {formatDays(contributionByPokemonId.get(item.id) ?? 0)}日
+                                                                </Typography>
+                                                            )}
+                                                            {helpingBonusContributionByPokemonId.has(item.id) && (
+                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                    おてつだいボーナス貢献: {formatDays(
+                                                                        helpingBonusContributionByPokemonId.get(item.id) ?? 0
+                                                                    )}日
                                                                 </Typography>
                                                             )}
                                                         </Stack>

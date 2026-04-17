@@ -1,8 +1,12 @@
 import { IngredientName, IngredientNames } from '../data/pokemons';
 import { PokemonBoxItem } from './PokemonBox';
+import Nature from './Nature';
+import PokemonIv from './PokemonIv';
 import PokemonStrength, {
     createStrengthParameter, noFavoriteFieldIndex, recipeLevelBonus, StrengthParameter
 } from './PokemonStrength';
+import SubSkillList from './SubSkillList';
+import { IngredientType } from './PokemonRp';
 
 export type PokedayRecipeCategory = 'curry' | 'salad' | 'dessert';
 
@@ -31,6 +35,15 @@ export type MinimumWorkDaysResult = {
     totalDays: number;
     workDaysByPokemon: number[];
 };
+
+export type IngredientBaselineSource = {
+    ingredientName: IngredientName;
+    pokemonName: string;
+    ingredientType: IngredientType;
+};
+
+export type IngredientBaselineDetailMaps =
+    Partial<Record<IngredientName, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>>>;
 
 export const pokedayRecipeGroups: {
     category: PokedayRecipeCategory;
@@ -243,6 +256,28 @@ const hyperCutterIngredientPool: IngredientName[] = [
     'tomato',
     'corn',
 ];
+
+export const ingredientBaselineSources: Partial<Record<IngredientName, IngredientBaselineSource>> = {
+    leek: { ingredientName: 'leek', pokemonName: "Farfetch'd", ingredientType: 'AAA' },
+    mushroom: { ingredientName: 'mushroom', pokemonName: 'Spiritomb', ingredientType: 'AAA' },
+    egg: { ingredientName: 'egg', pokemonName: 'Blissey', ingredientType: 'AAA' },
+    potato: { ingredientName: 'potato', pokemonName: 'Cetitan', ingredientType: 'AAA' },
+    apple: { ingredientName: 'apple', pokemonName: 'Skeledirge', ingredientType: 'AAA' },
+    herb: { ingredientName: 'herb', pokemonName: 'Dragonite', ingredientType: 'AAA' },
+    sausage: { ingredientName: 'sausage', pokemonName: 'Aggron', ingredientType: 'AAA' },
+    milk: { ingredientName: 'milk', pokemonName: 'Blastoise', ingredientType: 'AAA' },
+    honey: { ingredientName: 'honey', pokemonName: 'Venusaur', ingredientType: 'AAA' },
+    oil: { ingredientName: 'oil', pokemonName: 'Toxicroak', ingredientType: 'AAA' },
+    ginger: { ingredientName: 'ginger', pokemonName: 'Tyranitar', ingredientType: 'AAA' },
+    tomato: { ingredientName: 'tomato', pokemonName: 'Luxray', ingredientType: 'AAA' },
+    cacao: { ingredientName: 'cacao', pokemonName: 'Absol', ingredientType: 'AAA' },
+    tail: { ingredientName: 'tail', pokemonName: 'Ditto', ingredientType: 'AAC' },
+    soy: { ingredientName: 'soy', pokemonName: 'Tyranitar', ingredientType: 'ABB' },
+    corn: { ingredientName: 'corn', pokemonName: 'Bewear', ingredientType: 'AAA' },
+    coffee: { ingredientName: 'coffee', pokemonName: 'Vikavolt', ingredientType: 'AAA' },
+    pumpkin: { ingredientName: 'pumpkin', pokemonName: 'Gourgeist (Small)', ingredientType: 'AAA' },
+    avocado: { ingredientName: 'avocado', pokemonName: 'Flygon', ingredientType: 'AAA' },
+};
 
 function roundHalfUp(value: number): number {
     return Math.floor(value + 0.5);
@@ -608,6 +643,62 @@ export function getDailyIngredientDetailMapWithStrengthParameter(
         addDistributedSkillIngredients(result.skillValue);
     }
 
+    return ret;
+}
+
+export function getIngredientBaselineDetailMap(
+    parameter: StrengthParameter,
+): Partial<Record<IngredientName, PokedayIngredientDailyDetail>> {
+    const ret: Partial<Record<IngredientName, PokedayIngredientDailyDetail>> = {};
+    for (const ingredientName of IngredientNames) {
+        const source = ingredientBaselineSources[ingredientName];
+        if (source === undefined) {
+            continue;
+        }
+        const iv = new PokemonIv({
+            pokemonName: source.pokemonName,
+            level: 60,
+            skillLevel: 1,
+            ingredient: source.ingredientType,
+            nature: new Nature('Hardy'),
+            subSkills: new SubSkillList(),
+        });
+        const detailMap = getDailyIngredientDetailMap(
+            new PokemonBoxItem(iv),
+            { parameter },
+        );
+        const value = detailMap[ingredientName];
+        if (value !== undefined) {
+            ret[ingredientName] = value;
+        }
+    }
+    return ret;
+}
+
+export function getIngredientBaselineDetailMaps(
+    parameter: StrengthParameter,
+    ingredientNames: IngredientName[],
+): IngredientBaselineDetailMaps {
+    const ret: IngredientBaselineDetailMaps = {};
+    for (const ingredientName of ingredientNames) {
+        const source = ingredientBaselineSources[ingredientName];
+        if (source === undefined) {
+            continue;
+        }
+        const iv = new PokemonIv({
+            pokemonName: source.pokemonName,
+            level: 60,
+            skillLevel: 1,
+            ingredient: source.ingredientType,
+            nature: new Nature('Hardy'),
+            subSkills: new SubSkillList(),
+        });
+        const detailMap = getDailyIngredientDetailMap(
+            new PokemonBoxItem(iv),
+            { parameter },
+        );
+        ret[ingredientName] = detailMap;
+    }
     return ret;
 }
 
