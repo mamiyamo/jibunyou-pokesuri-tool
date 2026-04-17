@@ -129,7 +129,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const [mealCount, setMealCount] = React.useState<1 | 3>(3);
     const [useHelpingBonus, setUseHelpingBonus] = React.useState(false);
-    const [activePartyIndex, setActivePartyIndex] = React.useState(0);
+    const [activePartyIndexByRecipeId, setActivePartyIndexByRecipeId] = React.useState<Record<string, number>>({});
     const [partySelections, setPartySelections] = React.useState<TeamSelectionMap[]>(
         () => Array.from({length: PARTY_COUNT}, () => ({})),
     );
@@ -271,8 +271,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         setPartySelections(prev => ensurePartySelections(prev));
     }, [boxItems, ensurePartySelections, open]);
 
-    const activeTeamSelections = partySelections[activePartyIndex] ?? {};
-
     const onMealCountChange = React.useCallback((
         _event: React.MouseEvent<HTMLElement>,
         nextValue: 1 | 3 | null,
@@ -284,23 +282,26 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const onUseHelpingBonusChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setUseHelpingBonus(e.target.checked);
     }, []);
-    const onPartyChange = React.useCallback((_: React.SyntheticEvent, nextValue: number) => {
-        setActivePartyIndex(nextValue);
+    const onPartyChange = React.useCallback((recipeId: string, _: React.SyntheticEvent, nextValue: number) => {
+        setActivePartyIndexByRecipeId(prev => ({
+            ...prev,
+            [recipeId]: nextValue,
+        }));
         setOpenSelectKey(null);
     }, []);
 
-    const onTeamSelectionChange = React.useCallback((recipeKeyText: string, index: number, value: string) => {
+    const onTeamSelectionChange = React.useCallback((recipeKeyText: string, partyIndex: number, index: number, value: string) => {
         setPartySelections(prev => {
             const next = [...prev];
-            const currentParty = {...(next[activePartyIndex] ?? {})};
+            const currentParty = {...(next[partyIndex] ?? {})};
             const current = [...(currentParty[recipeKeyText] ?? ['', '', '', '', ''])];
             const nextValue: number | '' = value === '' ? '' : Number(value);
             current[index] = nextValue;
             currentParty[recipeKeyText] = current;
-            next[activePartyIndex] = currentParty;
+            next[partyIndex] = currentParty;
             return next;
         });
-    }, [activePartyIndex]);
+    }, []);
 
     if (!open) {
         return <></>;
@@ -329,7 +330,8 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         いいキャンプチケットやイベント、元気設定、タップ頻度もここに反映されます。
                         イワパレスのように複数食材を持ってくるポケモンも、そのポケモン自身の実際の食材内訳で再計算しています。
                         食材表は基準24h個数と24h個数の増減を見ています。
-                        ポケモン表は、基準必要日数と現在の必要日数を見て、どれだけ速く終わるかを見ています。
+                        ポケモン表は、そのポケモンが実際に担当した稼働日数で集めた量を、
+                        基準必要日数に換算して見ています。
                     </Typography>
                     <TableContainer sx={{overflowX: 'auto', maxWidth: '100%'}}>
                         <Table size="small" sx={{width: '100%'}}>
@@ -369,21 +371,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                 label="おてつだいボーナス考慮"
                 sx={{display: 'flex', mb: 1}}
             />
-            <Tabs
-                value={activePartyIndex}
-                onChange={onPartyChange}
-                variant="scrollable"
-                scrollButtons="auto"
-                sx={{mb: 1, minHeight: 36}}
-            >
-                {Array.from({length: PARTY_COUNT}, (_, index) => (
-                    <Tab
-                        key={`party:${index}`}
-                        label={`編成${index + 1}`}
-                        sx={{minHeight: 36}}
-                    />
-                ))}
-            </Tabs>
             {pokedayRecipeGroups.map(group => (
                 <Paper key={group.category} variant="outlined" sx={{
                     p: isSmallScreen ? 1 : 1.5,
@@ -393,7 +380,8 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                     <Typography variant="subtitle1" sx={{mb: 1}}>{group.title}</Typography>
                     {group.recipes.map(recipe => {
                         const recipeId = recipeKey(recipe);
-                        const team = activeTeamSelections[recipeId] ?? ['', '', '', '', ''];
+                        const activePartyIndex = activePartyIndexByRecipeId[recipeId] ?? 0;
+                        const team = partySelections[activePartyIndex]?.[recipeId] ?? ['', '', '', '', ''];
                         const selectedIdsInOrder = team.filter((x): x is number => x !== '');
                         const orderedBoxItems = [
                             ...selectedIdsInOrder
@@ -458,6 +446,12 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const totalWorkDaysResult = selectedTeamItems.length === 0 ? null :
                             buildWorkDaysResult(selectedTeamItems);
                         const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
+                        const workDaysByPokemonId = new Map<number, number>();
+                        if (totalWorkDaysResult !== null) {
+                            selectedTeamItems.forEach((item, index) => {
+                                workDaysByPokemonId.set(item.id, totalWorkDaysResult.workDaysByPokemon[index] ?? 0);
+                            });
+                        }
                         const energyPerDay = totalWorkDays === null || totalWorkDays <= 0 ? null :
                             finalEnergy * mealCount / totalWorkDays;
                         const pokemonRows = totalWorkDaysResult === null ? [] : selectedTeamItems.map((item, index) => {
@@ -491,14 +485,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 }
                             }
                         }
-                        const powerPerDayByPokemonId = new Map<number, number>();
-                        if (totalWorkDaysResult !== null && totalWorkDays !== null && totalWorkDays > 0) {
-                            selectedTeamItems.forEach((item, index) => {
-                                const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
-                                const contribution = contributionByPokemonId.get(item.id) ?? 0;
-                                powerPerDayByPokemonId.set(item.id, workDays > 0 ? contribution / workDays : 0);
-                            });
-                        }
                         const selectedTeamDetailMap = buildTeamDetailMap(selectedTeamItems);
                         const ingredientRows = recipe.ingredients.map(ingredient => {
                             let base = 0;
@@ -518,8 +504,9 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         });
                         const pokemonBaselineDaysById = new Map<number, number | null>();
                         for (const selectedItem of selectedTeamItems) {
+                            const workDays = workDaysByPokemonId.get(selectedItem.id) ?? 0;
                             const requirements = recipe.ingredients.map(ingredient =>
-                                (selectedTeamDetailMap[selectedItem.id]?.[ingredient.name]?.total ?? 0) * mealCount
+                                (selectedTeamDetailMap[selectedItem.id]?.[ingredient.name]?.total ?? 0) * workDays
                             );
                             const hasRequirement = requirements.some(value => value > 0);
                             if (!hasRequirement) {
@@ -595,6 +582,21 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 </Stack>
                             </AccordionSummary>
                             <AccordionDetails sx={{pt: 0}}>
+                                <Tabs
+                                    value={activePartyIndex}
+                                    onChange={(event, nextValue) => onPartyChange(recipeId, event, nextValue)}
+                                    variant="scrollable"
+                                    scrollButtons="auto"
+                                    sx={{mb: 1, minHeight: 36}}
+                                >
+                                    {Array.from({length: PARTY_COUNT}, (_, index) => (
+                                        <Tab
+                                            key={`party:${recipeId}:${index}`}
+                                            label={`編成${index + 1}`}
+                                            sx={{minHeight: 36}}
+                                        />
+                                    ))}
+                                </Tabs>
                                 <Stack sx={{
                                     mb: 1,
                                     display: 'grid',
@@ -613,7 +615,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 onOpen={() => setOpenSelectKey(slotKey)}
                                                 onClose={() => setOpenSelectKey(null)}
                                                 onChange={(e: SelectChangeEvent) =>
-                                                    onTeamSelectionChange(recipeId, index, e.target.value)}
+                                                    onTeamSelectionChange(recipeId, activePartyIndex, index, e.target.value)}
                                                 displayEmpty
                                                 MenuProps={{
                                                     PaperProps: {
@@ -660,18 +662,11 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             >
                                                                 {getDisplayName(selected, t)}
                                                             </Typography>
-                                                            {powerPerDayByPokemonId.has(selected.id) && (
-                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                    貢献パワー: {formatWithComma(
-                                                                        Math.round(powerPerDayByPokemonId.get(selected.id) ?? 0)
-                                                                    )}
-                                                                </Typography>
-                                                            )}
-                                                            {helpingBonusContributionByPokemonId.has(selected.id) && (
-                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                    おてつだいボーナス貢献: {formatDays(
-                                                                        helpingBonusContributionByPokemonId.get(selected.id) ?? 0
-                                                                    )}日
+                                                                {helpingBonusContributionByPokemonId.has(selected.id) && (
+                                                                    <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                        おてつだいボーナス貢献: {formatDays(
+                                                                            helpingBonusContributionByPokemonId.get(selected.id) ?? 0
+                                                                        )}日
                                                                 </Typography>
                                                             )}
                                                         </Stack>
@@ -729,13 +724,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 >
                                                                     {getDisplayName(item, t)}
                                                                 </Typography>
-                                                                {powerPerDayByPokemonId.has(item.id) && (
-                                                                    <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                        貢献パワー: {formatWithComma(
-                                                                            Math.round(powerPerDayByPokemonId.get(item.id) ?? 0)
-                                                                        )}
-                                                                    </Typography>
-                                                                )}
                                                                 {helpingBonusContributionByPokemonId.has(item.id) && (
                                                                     <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
                                                                         おてつだいボーナス貢献: {formatDays(
@@ -846,7 +834,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                             {pokemonRows.map(({item, workDays}) => {
                                                 const isZero = workDays <= 1e-6;
                                                 const baselineWorkDays = pokemonBaselineDaysById.get(item.id) ?? null;
-                                                const deltaPercent = formatPercentDelta(workDays, baselineWorkDays);
+                                                const deltaPercent = formatPercentAcceleration(workDays, baselineWorkDays);
                                                 return <TableRow
                                                     key={`${recipeId}:pokemon:${item.id}`}
                                                     sx={{opacity: isZero ? 0.35 : 1}}
