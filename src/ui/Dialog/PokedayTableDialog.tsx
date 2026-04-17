@@ -515,7 +515,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const pokemonBaselineDaysById = new Map<number, number | null>();
                         for (const selectedItem of selectedTeamItems) {
                             const requirements = recipe.ingredients.map(ingredient =>
-                                selectedTeamDetailMap[selectedItem.id]?.[ingredient.name]?.total ?? 0
+                                (selectedTeamDetailMap[selectedItem.id]?.[ingredient.name]?.total ?? 0) * mealCount
                             );
                             const hasRequirement = requirements.some(value => value > 0);
                             if (!hasRequirement) {
