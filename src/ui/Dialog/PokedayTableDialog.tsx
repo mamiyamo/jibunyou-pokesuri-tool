@@ -120,7 +120,21 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         expertEffect: parameter.expertEffect,
         useSkillPity: parameter.useSkillPity,
         isGoodCampTicketSet: parameter.isGoodCampTicketSet,
-    }), [parameter.event, parameter.fieldIndex, parameter.expertEffect, parameter.useSkillPity, parameter.isGoodCampTicketSet]);
+        isEnergyAlwaysFull: parameter.isEnergyAlwaysFull,
+        sleepScore: parameter.sleepScore,
+        tapFrequency: parameter.tapFrequency,
+        tapFrequencyAsleep: parameter.tapFrequencyAsleep,
+    }), [
+        parameter.event,
+        parameter.fieldIndex,
+        parameter.expertEffect,
+        parameter.useSkillPity,
+        parameter.isGoodCampTicketSet,
+        parameter.isEnergyAlwaysFull,
+        parameter.sleepScore,
+        parameter.tapFrequency,
+        parameter.tapFrequencyAsleep,
+    ]);
     const detailCacheRef = React.useRef<Map<string, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>>>(
         new Map(),
     );
@@ -516,7 +530,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             </Typography>
                                                                 {powerPerDayByPokemonId.has(selected.id) && (
                                                                     <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                    1時間あたり: {formatWithComma(
+                                                            貢献パワー: {formatWithComma(
                                                                         Math.round(powerPerDayByPokemonId.get(selected.id) ?? 0)
                                                                     )}
                                                                 </Typography>
@@ -578,7 +592,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 </Typography>
                                                                 {powerPerDayByPokemonId.has(item.id) && (
                                                                     <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                        1時間あたり: {formatWithComma(
+                                                                        貢献パワー: {formatWithComma(
                                                                             Math.round(powerPerDayByPokemonId.get(item.id) ?? 0)
                                                                         )}
                                                                     </Typography>
