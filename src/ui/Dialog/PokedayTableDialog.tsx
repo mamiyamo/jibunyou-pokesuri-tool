@@ -17,6 +17,7 @@ import {
     calculateMinimumWorkDaysDetail, getDailyIngredientDetailMap, getRecipeFinalEnergy,
     pokedayRecipeGroups, PokedayIngredientDailyDetail, PokedayRecipe,
 } from '../../util/Pokeday';
+import { calculatePokemonDailySummary } from '../../util/DailyPlanner';
 import { useTranslation } from 'react-i18next';
 import IngredientIcon from '../IvCalc/IngredientIcon';
 import PokemonIcon from '../IvCalc/PokemonIcon';
@@ -389,14 +390,14 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 );
                             }
                         }
-                        const powerPerDayByPokemonId = new Map<number, number>();
-                        if (totalWorkDaysResult !== null && totalWorkDays !== null && totalWorkDays > 0) {
-                            selectedTeamItems.forEach((item, index) => {
-                                const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
-                                const contribution = contributionByPokemonId.get(item.id) ?? 0;
-                                powerPerDayByPokemonId.set(item.id, workDays > 0 ? contribution / (workDays * 24) : 0);
-                            });
-                        }
+                        const powerByPokemonId = new Map<number, number>();
+                        selectedTeamItems.forEach(item => {
+                            const helpBonusCount = useHelpingBonus ?
+                                helpingBonusHolders.filter(x => x.id !== item.id).length :
+                                0;
+                            const summary = calculatePokemonDailySummary(item, baseParameter, helpBonusCount);
+                            powerByPokemonId.set(item.id, summary.totalEnergy);
+                        });
 
                         return <Accordion key={recipeKey(recipe)} disableGutters sx={{mb: 0.5}}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -528,10 +529,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             >
                                                                 {getDisplayName(selected, t)}
                                                             </Typography>
-                                                                {powerPerDayByPokemonId.has(selected.id) && (
-                                                                    <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                            貢献パワー: {formatWithComma(
-                                                                        Math.round(powerPerDayByPokemonId.get(selected.id) ?? 0)
+                                                            {powerByPokemonId.has(selected.id) && (
+                                                                <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
+                                                                    貢献パワー: {formatWithComma(
+                                                                        Math.round(powerByPokemonId.get(selected.id) ?? 0)
                                                                     )}
                                                                 </Typography>
                                                             )}
@@ -590,10 +591,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 >
                                                                     {getDisplayName(item, t)}
                                                                 </Typography>
-                                                                {powerPerDayByPokemonId.has(item.id) && (
+                                                                {powerByPokemonId.has(item.id) && (
                                                                     <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
                                                                         貢献パワー: {formatWithComma(
-                                                                            Math.round(powerPerDayByPokemonId.get(item.id) ?? 0)
+                                                                            Math.round(powerByPokemonId.get(item.id) ?? 0)
                                                                         )}
                                                                     </Typography>
                                                                 )}

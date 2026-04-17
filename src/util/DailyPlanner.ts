@@ -156,6 +156,13 @@ function calculatePokemonPeriodSummary(item: PokemonBoxItem,
     };
 }
 
+export function calculatePokemonDailySummary(item: PokemonBoxItem,
+    parameter: StrengthParameter,
+    helpBonusCount: number = 0,
+): DailyPlannerPokemonSummary {
+    return calculatePokemonPeriodSummary(item, parameter, helpBonusCount, 24);
+}
+
 function subtractIngredientCounts(
     target: Partial<Record<IngredientName, number>>,
     source: Partial<Record<IngredientName, number>>,
