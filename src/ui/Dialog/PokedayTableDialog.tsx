@@ -2,8 +2,8 @@
 import {
     Accordion, AccordionDetails, AccordionSummary, Box, Button, Dialog, DialogActions,
     DialogContent, DialogTitle, FormControl, FormControlLabel, MenuItem, Paper, Select,
-    SelectChangeEvent, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead,
-    TableRow, ToggleButton, ToggleButtonGroup, Typography,
+    SelectChangeEvent, Stack, Switch, Tab, Tabs, Table, TableBody, TableCell, TableContainer,
+    TableHead, TableRow, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -15,14 +15,15 @@ import { StrengthParameter } from '../../util/PokemonStrength';
 import { loadBoxSortConfig, sortPokemonItems } from '../../util/PokemonBoxSort';
 import {
     calculateMinimumWorkDaysDetail, getDailyIngredientDetailMap, getRecipeFinalEnergy,
-    getIngredientBaselineDetailMaps, pokedayRecipeGroups, PokedayIngredientDailyDetail,
-    PokedayRecipe,
+    getIngredientBaselineDetailMaps, ingredientBaselineSources, pokedayRecipeGroups,
+    PokedayIngredientDailyDetail, PokedayRecipe,
 } from '../../util/Pokeday';
 import { useTranslation } from 'react-i18next';
 import IngredientIcon from '../IvCalc/IngredientIcon';
 import PokemonIcon from '../IvCalc/PokemonIcon';
 
 type TeamSelectionMap = Record<string, (number | '')[]>;
+const PARTY_COUNT = 5;
 
 function recipeKey(recipe: PokedayRecipe): string {
     return `${recipe.category}:${recipe.name}`;
@@ -120,7 +121,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const [mealCount, setMealCount] = React.useState<1 | 3>(3);
     const [useHelpingBonus, setUseHelpingBonus] = React.useState(false);
-    const [teamSelections, setTeamSelections] = React.useState<TeamSelectionMap>({});
+    const [activePartyIndex, setActivePartyIndex] = React.useState(0);
+    const [partySelections, setPartySelections] = React.useState<TeamSelectionMap[]>(
+        () => Array.from({length: PARTY_COUNT}, () => ({})),
+    );
     const [openSelectKey, setOpenSelectKey] = React.useState<string | null>(null);
     const [sortConfigRevision, setSortConfigRevision] = React.useState(0);
     const pokedayParameter = React.useMemo(() => ({
@@ -204,6 +208,11 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const ingredientBaselineDetailMaps = React.useMemo(() => (
         getIngredientBaselineDetailMaps(pokedayParameter, ingredientNames)
     ), [ingredientNames, pokedayParameter]);
+    const eventLabel = parameter.event === 'none' ? 'なし' : t(`events.${parameter.event}`);
+    const energySettingLabel = parameter.isEnergyAlwaysFull
+        ? '常に80%固定'
+        : `設定通り(${parameter.sleepScore}%)`;
+    const tapSettingLabel = `起床 ${parameter.tapFrequency === 'always' ? '毎分' : 'なし'} / 睡眠 ${parameter.tapFrequencyAsleep === 'always' ? '毎分' : 'なし'}`;
     const baseDailyCountMap = React.useMemo(() => {
         const ret: Record<number, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>> = {};
         for (const boxItem of boxItems) {
@@ -230,12 +239,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         return sortConfig.descending ? sorted : [...sorted].reverse();
     }, [boxItems, parameter, t, sortConfigRevision]);
 
-    React.useEffect(() => {
-        if (!open || boxItems.length === 0) {
-            return;
-        }
-        setTeamSelections(prev => {
-            const next = {...prev};
+    const ensurePartySelections = React.useCallback((source: TeamSelectionMap[]) => {
+        return Array.from({length: PARTY_COUNT}, (_, index) => {
+            const current = source[index] ?? {};
+            const next: TeamSelectionMap = {...current};
             for (const group of pokedayRecipeGroups) {
                 for (const recipe of group.recipes) {
                     const key = recipeKey(recipe);
@@ -246,7 +253,16 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
             }
             return next;
         });
-    }, [boxItems, baseDailyCountMap, open]);
+    }, []);
+
+    React.useEffect(() => {
+        if (!open || boxItems.length === 0) {
+            return;
+        }
+        setPartySelections(prev => ensurePartySelections(prev));
+    }, [boxItems, ensurePartySelections, open]);
+
+    const activeTeamSelections = partySelections[activePartyIndex] ?? {};
 
     const onMealCountChange = React.useCallback((
         _event: React.MouseEvent<HTMLElement>,
@@ -259,18 +275,23 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const onUseHelpingBonusChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setUseHelpingBonus(e.target.checked);
     }, []);
+    const onPartyChange = React.useCallback((_: React.SyntheticEvent, nextValue: number) => {
+        setActivePartyIndex(nextValue);
+        setOpenSelectKey(null);
+    }, []);
 
     const onTeamSelectionChange = React.useCallback((recipeKeyText: string, index: number, value: string) => {
-        setTeamSelections(prev => {
-            const current = [...(prev[recipeKeyText] ?? ['', '', '', '', ''])];
+        setPartySelections(prev => {
+            const next = [...prev];
+            const currentParty = {...(next[activePartyIndex] ?? {})};
+            const current = [...(currentParty[recipeKeyText] ?? ['', '', '', '', ''])];
             const nextValue: number | '' = value === '' ? '' : Number(value);
             current[index] = nextValue;
-            return {
-                ...prev,
-                [recipeKeyText]: current,
-            };
+            currentParty[recipeKeyText] = current;
+            next[activePartyIndex] = currentParty;
+            return next;
         });
-    }, []);
+    }, [activePartyIndex]);
 
     if (!open) {
         return <></>;
@@ -287,13 +308,64 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                 料理の最終エナジーと、必要な食材を集めるのにかかる稼働時間を見ます。
             </Typography>
             <Typography sx={{mb: 2}} variant="body2" color="text.secondary">
-                参照中の設定: レシピレベル {parameter.recipeLevel} / レシピボーナス {parameter.recipeBonus}% / フィールドボーナス {parameter.fieldBonus}%
+                参照中の設定: レシピレベル {parameter.recipeLevel} / レシピボーナス {parameter.recipeBonus}% / フィールドボーナス {parameter.fieldBonus}% / 元気 {energySettingLabel} / タップ {tapSettingLabel} / スキル天井 {parameter.useSkillPity ? 'ON' : 'OFF'} / いいキャンプ {parameter.isGoodCampTicketSet ? 'ON' : 'OFF'} / イベント {eventLabel}
             </Typography>
+            <Accordion disableGutters sx={{mb: 1}}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="subtitle2">貢献度の基準</Typography>
+                </AccordionSummary>
+                <AccordionDetails sx={{pt: 0}}>
+                    <Typography variant="body2" sx={{mb: 1}}>
+                        各食材の基準は、固定の基準ポケモンを今の設定で毎回再計算した1日供給量です。
+                        その基準必要日数に対して、現在の編成がどれだけ短縮できるかを差分で見ています。
+                    </Typography>
+                    <TableContainer sx={{overflowX: 'auto', maxWidth: '100%'}}>
+                        <Table size="small" sx={{width: '100%'}}>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>食材</TableCell>
+                                    <TableCell>基準ポケモン</TableCell>
+                                    <TableCell>基準</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {ingredientNames.map(name => {
+                                    const source = ingredientBaselineSources[name];
+                                    const baselineDetail = ingredientBaselineDetailMaps[name]?.[name];
+                                    if (source === undefined || baselineDetail === undefined) {
+                                        return null;
+                                    }
+                                    return <TableRow key={name}>
+                                        <TableCell>{name}</TableCell>
+                                        <TableCell>{source.pokemonName} / {source.ingredientType}</TableCell>
+                                        <TableCell>{formatDailyTotal(baselineDetail)}</TableCell>
+                                    </TableRow>;
+                                })}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </AccordionDetails>
+            </Accordion>
             <FormControlLabel
                 control={<Switch checked={useHelpingBonus} onChange={onUseHelpingBonusChange} />}
                 label="おてつだいボーナス考慮"
                 sx={{display: 'flex', mb: 1}}
             />
+            <Tabs
+                value={activePartyIndex}
+                onChange={onPartyChange}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={{mb: 1, minHeight: 36}}
+            >
+                {Array.from({length: PARTY_COUNT}, (_, index) => (
+                    <Tab
+                        key={`party:${index}`}
+                        label={`編成${index + 1}`}
+                        sx={{minHeight: 36}}
+                    />
+                ))}
+            </Tabs>
             {pokedayRecipeGroups.map(group => (
                 <Paper key={group.category} variant="outlined" sx={{
                     p: isSmallScreen ? 1 : 1.5,
@@ -303,7 +375,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                     <Typography variant="subtitle1" sx={{mb: 1}}>{group.title}</Typography>
                     {group.recipes.map(recipe => {
                         const recipeId = recipeKey(recipe);
-                        const team = teamSelections[recipeId] ?? ['', '', '', '', ''];
+                        const team = activeTeamSelections[recipeId] ?? ['', '', '', '', ''];
                         const selectedIdsInOrder = team.filter((x): x is number => x !== '');
                         const orderedBoxItems = [
                             ...selectedIdsInOrder
