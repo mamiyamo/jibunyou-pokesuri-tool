@@ -119,13 +119,21 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         fieldIndex: parameter.fieldIndex,
         expertEffect: parameter.expertEffect,
         useSkillPity: parameter.useSkillPity,
-    }), [parameter.event, parameter.fieldIndex, parameter.expertEffect, parameter.useSkillPity]);
+        isGoodCampTicketSet: parameter.isGoodCampTicketSet,
+    }), [parameter.event, parameter.fieldIndex, parameter.expertEffect, parameter.useSkillPity, parameter.isGoodCampTicketSet]);
     const detailCacheRef = React.useRef<Map<string, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>>>(
         new Map(),
     );
     React.useEffect(() => {
         detailCacheRef.current.clear();
-    }, [boxItems, pokedayParameter.event, pokedayParameter.fieldIndex, pokedayParameter.expertEffect, pokedayParameter.useSkillPity]);
+    }, [
+        boxItems,
+        pokedayParameter.event,
+        pokedayParameter.fieldIndex,
+        pokedayParameter.expertEffect,
+        pokedayParameter.useSkillPity,
+        pokedayParameter.isGoodCampTicketSet,
+    ]);
     React.useEffect(() => {
         const updateSortConfig = () => {
             setSortConfigRevision(value => value + 1);
@@ -367,6 +375,14 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 );
                             }
                         }
+                        const powerPerDayByPokemonId = new Map<number, number>();
+                        if (totalWorkDaysResult !== null && totalWorkDays !== null && totalWorkDays > 0) {
+                            selectedTeamItems.forEach((item, index) => {
+                                const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
+                                const contribution = contributionByPokemonId.get(item.id) ?? 0;
+                                powerPerDayByPokemonId.set(item.id, workDays > 0 ? contribution / workDays : 0);
+                            });
+                        }
 
                         return <Accordion key={recipeKey(recipe)} disableGutters sx={{mb: 0.5}}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -498,10 +514,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             >
                                                                 {getDisplayName(selected, t)}
                                                             </Typography>
-                                                            {contributionByPokemonId.has(selected.id) && (
+                                                            {powerPerDayByPokemonId.has(selected.id) && (
                                                                 <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                    貢献度: {formatWithComma(
-                                                                        Math.round(contributionByPokemonId.get(selected.id) ?? 0)
+                                                                    1日あたり: {formatWithComma(
+                                                                        Math.round(powerPerDayByPokemonId.get(selected.id) ?? 0)
                                                                     )}
                                                                 </Typography>
                                                             )}
@@ -560,10 +576,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 >
                                                                     {getDisplayName(item, t)}
                                                                 </Typography>
-                                                                {contributionByPokemonId.has(item.id) && (
+                                                                {powerPerDayByPokemonId.has(item.id) && (
                                                                     <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                        貢献度: {formatWithComma(
-                                                                            Math.round(contributionByPokemonId.get(item.id) ?? 0)
+                                                                        1日あたり: {formatWithComma(
+                                                                            Math.round(powerPerDayByPokemonId.get(item.id) ?? 0)
                                                                         )}
                                                                     </Typography>
                                                                 )}

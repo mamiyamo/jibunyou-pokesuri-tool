@@ -435,7 +435,7 @@ export function getDailyIngredientCount(
 export function getDailyIngredientCountMap(
     boxItem: PokemonBoxItem,
     options?: {
-        parameter?: Pick<StrengthParameter, 'event'|'fieldIndex'|'expertEffect'>;
+        parameter?: Pick<StrengthParameter, 'event'|'fieldIndex'|'expertEffect'|'isGoodCampTicketSet'>;
     }
 ): Partial<Record<IngredientName, number>> {
     const detailMap = getDailyIngredientDetailMap(boxItem, options);
@@ -450,7 +450,7 @@ export function getDailyIngredientDetailMap(
     boxItem: PokemonBoxItem,
     options?: {
         helpBonusCount?: number;
-        parameter?: Pick<StrengthParameter, 'event'|'fieldIndex'|'expertEffect'|'useSkillPity'>;
+        parameter?: Pick<StrengthParameter, 'event'|'fieldIndex'|'expertEffect'|'useSkillPity'|'isGoodCampTicketSet'>;
     }
 ): Partial<Record<IngredientName, PokedayIngredientDailyDetail>> {
     const helpBonusCount = options?.helpBonusCount ?? 0;
