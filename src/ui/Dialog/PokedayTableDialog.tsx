@@ -53,6 +53,14 @@ function formatDailyTotal(value: PokedayIngredientDailyDetail): string {
     return formatDailyCount(value.total);
 }
 
+function formatPercentDelta(current: number | null, baseline: number | null): string | null {
+    if (current === null || baseline === null || baseline <= 0) {
+        return null;
+    }
+    const delta = (baseline - current) / baseline * 100;
+    return `${delta >= 0 ? '+' : ''}${delta.toFixed(2)}%`;
+}
+
 function formatWorkDays(value: number): string {
     return `${formatDays(value)}日（${formatHoursMinutesFromDays(value)}）`;
 }
@@ -415,6 +423,27 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             });
                             return {ingredient, dailyDetail, dailyCount, days, perPokemon};
                         });
+                        const ingredientBaselineDaysByName = new Map<IngredientName, number | null>();
+                        for (const ingredient of recipe.ingredients) {
+                            const baselineDaily = ingredientBaselineDetailMaps[ingredient.name]?.[ingredient.name]?.total ?? 0;
+                            ingredientBaselineDaysByName.set(
+                                ingredient.name,
+                                baselineDaily > 0 ? ingredient.count * mealCount / baselineDaily : null,
+                            );
+                        }
+                        const pokemonBaselineDaysById = new Map<number, number | null>();
+                        for (const selectedItem of selectedTeamItems) {
+                            const requirements = recipe.ingredients.map(ingredient =>
+                                selectedTeamDetailMap[selectedItem.id]?.[ingredient.name]?.total ?? 0
+                            );
+                            const hasRequirement = requirements.some(value => value > 0);
+                            if (!hasRequirement) {
+                                pokemonBaselineDaysById.set(selectedItem.id, 0);
+                                continue;
+                            }
+                            const baselineResult = calculateMinimumWorkDaysDetail(requirements, recipeBaselineRows);
+                            pokemonBaselineDaysById.set(selectedItem.id, baselineResult?.totalDays ?? null);
+                        }
 
                         return <Accordion key={recipeKey(recipe)} disableGutters sx={{mb: 0.5}}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -680,11 +709,23 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         必要日数
                                                     </Typography>
                                                 </TableCell>
+                                                <TableCell align="right" sx={{width: isSmallScreen ? 82 : 'auto'}}>
+                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                        基準必要日数
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell align="right" sx={{width: isSmallScreen ? 64 : 'auto'}}>
+                                                    <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                        差分
+                                                    </Typography>
+                                                </TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
                                             {pokemonRows.map(({item, workDays}) => {
                                                 const isZero = workDays <= 1e-6;
+                                                const baselineWorkDays = pokemonBaselineDaysById.get(item.id) ?? null;
+                                                const deltaPercent = formatPercentDelta(workDays, baselineWorkDays);
                                                 return <TableRow
                                                     key={`${recipeId}:pokemon:${item.id}`}
                                                     sx={{opacity: isZero ? 0.35 : 1}}
@@ -724,6 +765,26 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         <Typography variant="body2" sx={{lineHeight: 1}}>
                                                             {workDays <= 0 ? '0.00日（0時間0分）' : formatWorkDays(workDays)}
                                                         </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
+                                                        <Typography variant="body2" sx={{lineHeight: 1}}>
+                                                            {baselineWorkDays === null ? 'ー' : `${formatDays(baselineWorkDays)}日`}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
+                                                        {deltaPercent === null ? (
+                                                            <Typography variant="body2" sx={{lineHeight: 1}}>ー</Typography>
+                                                        ) : (
+                                                            <Typography
+                                                                variant="body2"
+                                                                sx={{
+                                                                    lineHeight: 1,
+                                                                    color: deltaPercent.startsWith('+') ? 'primary.main' : 'error.main',
+                                                                }}
+                                                            >
+                                                                {deltaPercent}
+                                                            </Typography>
+                                                        )}
                                                     </TableCell>
                                                 </TableRow>;
                                             })}
@@ -798,6 +859,32 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             <Stack spacing={0} alignItems="flex-end">
                                                                 <Typography variant="caption" sx={{lineHeight: 1}}>
                                                                     必要日数
+                                                                </Typography>
+                                                            </Stack>
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 72 : 'auto',
+                                                            }}
+                                                        >
+                                                            <Stack spacing={0} alignItems="flex-end">
+                                                                <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                    基準必要日数
+                                                                </Typography>
+                                                            </Stack>
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 64 : 'auto',
+                                                            }}
+                                                        >
+                                                            <Stack spacing={0} alignItems="flex-end">
+                                                                <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                    差分
                                                                 </Typography>
                                                             </Stack>
                                                         </TableCell>
@@ -876,6 +963,48 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                     </Typography>
                                                                 </Stack>
                                                             )}
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 70 : 'auto',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            {(() => {
+                                                                const baselineDays = ingredientBaselineDaysByName.get(row.ingredient.name) ?? null;
+                                                                return baselineDays === null ? 'ー' : (
+                                                                    <Typography variant="body2" sx={{lineHeight: 1}}>
+                                                                        {formatDays(baselineDays)}日
+                                                                    </Typography>
+                                                                );
+                                                            })()}
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 64 : 'auto',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            {(() => {
+                                                                const baselineDays = ingredientBaselineDaysByName.get(row.ingredient.name) ?? null;
+                                                                const deltaPercent = formatPercentDelta(row.days, baselineDays);
+                                                                if (deltaPercent === null) {
+                                                                    return <Typography variant="body2" sx={{lineHeight: 1}}>ー</Typography>;
+                                                                }
+                                                                return <Typography
+                                                                    variant="body2"
+                                                                    sx={{
+                                                                        lineHeight: 1,
+                                                                        color: deltaPercent.startsWith('+') ? 'primary.main' : 'error.main',
+                                                                    }}
+                                                                >
+                                                                    {deltaPercent}
+                                                                </Typography>;
+                                                            })()}
                                                         </TableCell>
                                                     </TableRow>)}
                                                 </TableBody>
