@@ -62,6 +62,14 @@ function formatPercentDelta(current: number | null, baseline: number | null): st
     return `${delta >= 0 ? '+' : ''}${delta.toFixed(2)}%`;
 }
 
+function formatPercentAcceleration(current: number | null, baseline: number | null): string | null {
+    if (current === null || baseline === null || current <= 0 || baseline <= 0) {
+        return null;
+    }
+    const delta = (baseline / current - 1) * 100;
+    return `${delta >= 0 ? '+' : ''}${delta.toFixed(2)}%`;
+}
+
 function formatWorkDays(value: number): string {
     return `${formatDays(value)}日（${formatHoursMinutesFromDays(value)}）`;
 }
@@ -320,8 +328,8 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         各食材の基準は、固定の基準ポケモンを今の設定で毎回再計算した1日供給量です。
                         いいキャンプチケットやイベント、元気設定、タップ頻度もここに反映されます。
                         イワパレスのように複数食材を持ってくるポケモンも、そのポケモン自身の実際の食材内訳で再計算しています。
-                        食材表は24h個数の基準に対して、現在の編成がどれだけ多いか少ないかを差分で見ています。
-                        ポケモン表は、まず合計稼働時間の基準と現在値を見ます。
+                        食材表は基準24h個数と24h個数の増減を見ています。
+                        ポケモン表は、基準必要日数と現在の必要日数を見て、どれだけ速く終わるかを見ています。
                     </Typography>
                     <TableContainer sx={{overflowX: 'auto', maxWidth: '100%'}}>
                         <Table size="small" sx={{width: '100%'}}>
@@ -788,12 +796,12 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 </TableCell>
                                                 <TableCell align="right" sx={{width: isSmallScreen ? 82 : 'auto'}}>
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                        基準合計稼働時間
+                                                        基準必要日数
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell align="right" sx={{width: isSmallScreen ? 64 : 'auto'}}>
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                        短縮量
+                                                        加速量
                                                     </Typography>
                                                 </TableCell>
                                             </TableRow>
@@ -818,7 +826,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     </TableCell>
                                                     <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
                                                         {(() => {
-                                                            const deltaPercent = formatPercentDelta(totalWorkDays, recipeBaselineTotalDays);
+                                                            const deltaPercent = formatPercentAcceleration(totalWorkDays, recipeBaselineTotalDays);
                                                             if (deltaPercent === null) {
                                                                 return <Typography variant="body2" sx={{lineHeight: 1}}>ー</Typography>;
                                                             }
@@ -826,7 +834,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 variant="body2"
                                                                 sx={{
                                                                     lineHeight: 1,
-                                                                    color: deltaPercent.startsWith('-') ? 'primary.main' : 'error.main',
+                                                                    color: deltaPercent.startsWith('+') ? 'primary.main' : 'error.main',
                                                                 }}
                                                             >
                                                                 {deltaPercent}
@@ -955,10 +963,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         >
                                                             <Stack spacing={0} sx={{lineHeight: 1}}>
                                                                 <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                    24h個数
+                                                                    基準24h個数
                                                                 </Typography>
                                                                 <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                    (食材+スキル)
+                                                                    (基準)
                                                                 </Typography>
                                                             </Stack>
                                                         </TableCell>
@@ -966,12 +974,15 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             align="right"
                                                             sx={{
                                                                 px: isSmallScreen ? 0.1 : 2,
-                                                                width: isSmallScreen ? 82 : 'auto',
+                                                                width: isSmallScreen ? 150 : 'auto',
                                                             }}
                                                         >
                                                             <Stack spacing={0} alignItems="flex-end">
                                                                 <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                    基準24h個数
+                                                                    24h個数
+                                                                </Typography>
+                                                                <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                    (食材+スキル)
                                                                 </Typography>
                                                             </Stack>
                                                         </TableCell>
@@ -1015,6 +1026,23 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             align="right"
                                                             sx={{
                                                                 px: isSmallScreen ? 0.1 : 2,
+                                                                width: isSmallScreen ? 52 : 'auto',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            {(() => {
+                                                                const baselineDaily = ingredientBaselineDetailMaps[row.ingredient.name]?.[row.ingredient.name]?.total ?? 0;
+                                                                return baselineDaily <= 0 ? 'ー' : (
+                                                                    <Typography variant="body2" sx={{lineHeight: 1}}>
+                                                                        {formatDailyCount(baselineDaily)}
+                                                                    </Typography>
+                                                                );
+                                                            })()}
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="right"
+                                                            sx={{
+                                                                px: isSmallScreen ? 0.1 : 2,
                                                                 width: isSmallScreen ? 72 : 'auto',
                                                                 overflow: 'hidden',
                                                                 whiteSpace: 'nowrap',
@@ -1044,23 +1072,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                         合計 {formatDailyTotal(row.dailyDetail)}
                                                                     </Typography>
                                                                 </Stack>}
-                                                        </TableCell>
-                                                        <TableCell
-                                                            align="right"
-                                                            sx={{
-                                                                px: isSmallScreen ? 0.1 : 2,
-                                                                width: isSmallScreen ? 52 : 'auto',
-                                                                whiteSpace: 'nowrap',
-                                                            }}
-                                                        >
-                                                            {(() => {
-                                                                const baselineDaily = ingredientBaselineDetailMaps[row.ingredient.name]?.[row.ingredient.name]?.total ?? 0;
-                                                                return baselineDaily <= 0 ? 'ー' : (
-                                                                    <Typography variant="body2" sx={{lineHeight: 1}}>
-                                                                        {formatDailyCount(baselineDaily)}
-                                                                    </Typography>
-                                                                );
-                                                            })()}
                                                         </TableCell>
                                                         <TableCell
                                                             align="right"
