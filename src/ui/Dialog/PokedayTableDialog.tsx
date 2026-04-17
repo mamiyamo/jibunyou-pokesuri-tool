@@ -1072,7 +1072,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         >
                                                             {(() => {
                                                                 const baselineDaily = ingredientBaselineDetailMaps[row.ingredient.name]?.[row.ingredient.name]?.total ?? 0;
-                                                                const deltaPercent = formatPercentDelta(baselineDaily, row.dailyCount);
+                                                                const deltaPercent = formatPercentDelta(row.dailyCount, baselineDaily);
                                                                 if (deltaPercent === null) {
                                                                     return <Typography variant="body2" sx={{lineHeight: 1}}>ー</Typography>;
                                                                 }
