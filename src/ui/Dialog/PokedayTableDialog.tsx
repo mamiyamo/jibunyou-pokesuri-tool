@@ -793,7 +793,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 </TableCell>
                                                 <TableCell align="right" sx={{width: isSmallScreen ? 64 : 'auto'}}>
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                        短縮日数
+                                                        短縮量
                                                     </Typography>
                                                 </TableCell>
                                             </TableRow>
@@ -826,7 +826,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 variant="body2"
                                                                 sx={{
                                                                     lineHeight: 1,
-                                                                    color: deltaPercent.startsWith('+') ? 'primary.main' : 'error.main',
+                                                                    color: deltaPercent.startsWith('-') ? 'primary.main' : 'error.main',
                                                                 }}
                                                             >
                                                                 {deltaPercent}
