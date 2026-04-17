@@ -58,7 +58,7 @@ function formatPercentDelta(current: number | null, baseline: number | null): st
     if (current === null || baseline === null || baseline <= 0) {
         return null;
     }
-    const delta = (baseline - current) / baseline * 100;
+    const delta = (current - baseline) / baseline * 100;
     return `${delta >= 0 ? '+' : ''}${delta.toFixed(2)}%`;
 }
 
@@ -788,12 +788,12 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 </TableCell>
                                                 <TableCell align="right" sx={{width: isSmallScreen ? 82 : 'auto'}}>
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                        基準必要日数
+                                                        基準合計稼働時間
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell align="right" sx={{width: isSmallScreen ? 64 : 'auto'}}>
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                        差分
+                                                        短縮日数
                                                     </Typography>
                                                 </TableCell>
                                             </TableRow>
@@ -1072,7 +1072,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         >
                                                             {(() => {
                                                                 const baselineDaily = ingredientBaselineDetailMaps[row.ingredient.name]?.[row.ingredient.name]?.total ?? 0;
-                                                                const deltaPercent = formatPercentDelta(row.dailyCount, baselineDaily);
+                                                                const deltaPercent = formatPercentDelta(baselineDaily, row.dailyCount);
                                                                 if (deltaPercent === null) {
                                                                     return <Typography variant="body2" sx={{lineHeight: 1}}>ー</Typography>;
                                                                 }
