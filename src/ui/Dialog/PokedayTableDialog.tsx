@@ -74,6 +74,10 @@ function formatWorkDays(value: number): string {
     return `${formatDays(value)}日（${formatHoursMinutesFromDays(value)}）`;
 }
 
+function formatCount(value: number): string {
+    return `${formatDailyCount(value)}個`;
+}
+
 type SurplusIngredientPart = {
     key: string;
     ingredientName: IngredientName | '?';
@@ -578,6 +582,17 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const totalWorkDaysResult = selectedTeamItems.length === 0 ? null :
                             buildSelectedWorkDaysResult(selectedTeamItems);
                         const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
+                        const pokemonContributionCountById = new Map<number, number>();
+                        let totalContributionCount = 0;
+                        for (const selectedItem of selectedTeamItems) {
+                            const count = recipe.ingredients.reduce((sum, ingredient) => (
+                                sum + (selectedTeamDetailMap[selectedItem.id]?.[ingredient.name]?.total ?? 0)
+                            ), 0);
+                            pokemonContributionCountById.set(selectedItem.id, count);
+                            totalContributionCount += count;
+                        }
+                        const recipeRequiredCount = recipe.ingredients.reduce((sum, ingredient) =>
+                            sum + ingredient.count * mealCount, 0);
                         const workDaysByPokemonId = new Map<number, number>();
                         if (totalWorkDaysResult !== null) {
                             selectedTeamItems.forEach((item, index) => {
@@ -644,9 +659,11 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         }
                         const totalSurplusParts = mergeSurplusIngredientParts(teamSurplusParts);
                         const pokemonBaselineDaysById = new Map<number, number | null>();
+                        const pokemonBaselineCountById = new Map<number, number>();
                         for (const selectedItem of selectedTeamItems) {
                             if (recipeBaselineTotalDays === null) {
                                 pokemonBaselineDaysById.set(selectedItem.id, null);
+                                pokemonBaselineCountById.set(selectedItem.id, 0);
                                 continue;
                             }
                             const itemRequirements = recipe.ingredients.map(ingredient => {
@@ -655,12 +672,17 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             });
                             if (itemRequirements.every(value => value <= 0)) {
                                 pokemonBaselineDaysById.set(selectedItem.id, 0);
+                                pokemonBaselineCountById.set(selectedItem.id, 0);
                                 continue;
                             }
                             const itemBaselineResult = calculateMinimumWorkDaysDetail(itemRequirements, recipeBaselineRows);
                             pokemonBaselineDaysById.set(
                                 selectedItem.id,
                                 itemBaselineResult?.totalDays ?? 0,
+                            );
+                            pokemonBaselineCountById.set(
+                                selectedItem.id,
+                                itemRequirements.reduce((sum, value) => sum + value, 0),
                             );
                         }
 
@@ -955,14 +977,24 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                         </Typography>
                                                     </TableCell>
                                                     <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
-                                                        <Typography variant="body2" sx={{lineHeight: 1}}>
-                                                            {formatWorkDays(totalWorkDays)}
-                                                        </Typography>
+                                                        <Stack spacing={0} alignItems="flex-end">
+                                                            <Typography variant="body2" sx={{lineHeight: 1}}>
+                                                                {formatWorkDays(totalWorkDays)}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                {formatCount(totalContributionCount)}
+                                                            </Typography>
+                                                        </Stack>
                                                     </TableCell>
                                                     <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
-                                                        <Typography variant="body2" sx={{lineHeight: 1}}>
-                                                            {recipeBaselineTotalDays === null ? 'ー' : formatWorkDays(recipeBaselineTotalDays)}
-                                                        </Typography>
+                                                        <Stack spacing={0} alignItems="flex-end">
+                                                            <Typography variant="body2" sx={{lineHeight: 1}}>
+                                                                {recipeBaselineTotalDays === null ? 'ー' : formatWorkDays(recipeBaselineTotalDays)}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                {recipeBaselineTotalDays === null ? 'ー' : formatCount(recipeRequiredCount)}
+                                                            </Typography>
+                                                        </Stack>
                                                     </TableCell>
                                                     <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
                                                         {(() => {
@@ -1026,14 +1058,24 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                     </Stack>
                                                     </TableCell>
                                                     <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
-                                                        <Typography variant="body2" sx={{lineHeight: 1}}>
-                                                            {workDays <= 0 ? '0.00日（0時間0分）' : formatWorkDays(workDays)}
-                                                        </Typography>
+                                                        <Stack spacing={0} alignItems="flex-end">
+                                                            <Typography variant="body2" sx={{lineHeight: 1}}>
+                                                                {workDays <= 0 ? '0.00日（0時間0分）' : formatWorkDays(workDays)}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                {formatCount(pokemonContributionCountById.get(item.id) ?? 0)}
+                                                            </Typography>
+                                                        </Stack>
                                                     </TableCell>
                                                     <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
-                                                        <Typography variant="body2" sx={{lineHeight: 1}}>
-                                                            {baselineWorkDays === null ? 'ー' : `${formatDays(baselineWorkDays)}日`}
-                                                        </Typography>
+                                                        <Stack spacing={0} alignItems="flex-end">
+                                                            <Typography variant="body2" sx={{lineHeight: 1}}>
+                                                                {baselineWorkDays === null ? 'ー' : `${formatDays(baselineWorkDays)}日`}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{lineHeight: 1}}>
+                                                                {baselineWorkDays === null ? 'ー' : formatCount(pokemonBaselineCountById.get(item.id) ?? 0)}
+                                                            </Typography>
+                                                        </Stack>
                                                     </TableCell>
                                                     <TableCell align="right" sx={{whiteSpace: 'nowrap'}}>
                                                         {deltaPercent === null ? (
