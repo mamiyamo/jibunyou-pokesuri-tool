@@ -579,6 +579,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             recipeRequirements,
                             buildRatesByPokemon(items, disabledHelpingBonusHolderId),
                         );
+                        const selectedTeamDetailMap = buildTeamDetailMap(selectedTeamItems);
                         const totalWorkDaysResult = selectedTeamItems.length === 0 ? null :
                             buildSelectedWorkDaysResult(selectedTeamItems);
                         const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
@@ -632,7 +633,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 }
                             }
                         }
-                        const selectedTeamDetailMap = buildTeamDetailMap(selectedTeamItems);
                         const ingredientRows = recipe.ingredients.map(ingredient => {
                             let base = 0;
                             let skill = 0;
