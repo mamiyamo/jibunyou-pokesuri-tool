@@ -330,8 +330,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         いいキャンプチケットやイベント、元気設定、タップ頻度もここに反映されます。
                         イワパレスのように複数食材を持ってくるポケモンも、そのポケモン自身の実際の食材内訳で再計算しています。
                         食材表は基準24h個数と24h個数の増減を見ています。
-                        ポケモン表は、そのポケモンが実際に担当した稼働日数で集めた量を、
-                        基準必要日数に換算して見ています。
+                        ポケモン表は、編成全体の基準必要日数を各ポケモンの担当日数比で按分して見ています。
                     </Typography>
                     <TableContainer sx={{overflowX: 'auto', maxWidth: '100%'}}>
                         <Table size="small" sx={{width: '100%'}}>
@@ -443,9 +442,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             recipeRequirements,
                             buildRatesByPokemon(items, disabledHelpingBonusHolderId),
                         );
-                        const buildBaselineWorkDaysResult = (
-                            requirements: number[],
-                        ) => calculateMinimumWorkDaysDetail(requirements, recipeBaselineRows);
                         const totalWorkDaysResult = selectedTeamItems.length === 0 ? null :
                             buildSelectedWorkDaysResult(selectedTeamItems);
                         const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
@@ -508,16 +504,14 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const pokemonBaselineDaysById = new Map<number, number | null>();
                         for (const selectedItem of selectedTeamItems) {
                             const workDays = workDaysByPokemonId.get(selectedItem.id) ?? 0;
-                            const requirements = recipe.ingredients.map(ingredient =>
-                                (selectedTeamDetailMap[selectedItem.id]?.[ingredient.name]?.total ?? 0) * workDays
-                            );
-                            const hasRequirement = requirements.some(value => value > 0);
-                            if (!hasRequirement) {
-                                pokemonBaselineDaysById.set(selectedItem.id, 0);
+                            if (totalWorkDays === null || totalWorkDays <= 0 || recipeBaselineTotalDays === null) {
+                                pokemonBaselineDaysById.set(selectedItem.id, null);
                                 continue;
                             }
-                            const baselineResult = buildBaselineWorkDaysResult(requirements);
-                            pokemonBaselineDaysById.set(selectedItem.id, baselineResult?.totalDays ?? null);
+                            pokemonBaselineDaysById.set(
+                                selectedItem.id,
+                                recipeBaselineTotalDays * workDays / totalWorkDays,
+                            );
                         }
 
                         return <Accordion key={recipeKey(recipe)} disableGutters sx={{mb: 0.5}}>
