@@ -436,15 +436,18 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 )
                             );
                         };
-                        const buildWorkDaysResult = (
+                        const buildSelectedWorkDaysResult = (
                             items: PokemonBoxItem[],
                             disabledHelpingBonusHolderId: number | null = null,
                         ) => calculateMinimumWorkDaysDetail(
                             recipeRequirements,
-                            [...buildRatesByPokemon(items, disabledHelpingBonusHolderId), ...recipeBaselineRows],
+                            buildRatesByPokemon(items, disabledHelpingBonusHolderId),
                         );
+                        const buildBaselineWorkDaysResult = (
+                            requirements: number[],
+                        ) => calculateMinimumWorkDaysDetail(requirements, recipeBaselineRows);
                         const totalWorkDaysResult = selectedTeamItems.length === 0 ? null :
-                            buildWorkDaysResult(selectedTeamItems);
+                            buildSelectedWorkDaysResult(selectedTeamItems);
                         const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
                         const workDaysByPokemonId = new Map<number, number>();
                         if (totalWorkDaysResult !== null) {
@@ -462,7 +465,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const helpingBonusContributionByPokemonId = new Map<number, number>();
                         if (totalWorkDaysResult !== null && totalWorkDays !== null && totalWorkDays > 0) {
                             for (const selectedItem of selectedTeamItems) {
-                                const absentResult = buildWorkDaysResult(
+                                const absentResult = buildSelectedWorkDaysResult(
                                     selectedTeamItems.filter(item => item.id !== selectedItem.id),
                                 );
                                 if (absentResult !== null) {
@@ -472,7 +475,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                     );
                                 }
                                 if (useHelpingBonus && selectedItem.iv.hasHelpingBonusInActiveSubSkills) {
-                                    const noBonusResult = buildWorkDaysResult(
+                                    const noBonusResult = buildSelectedWorkDaysResult(
                                         selectedTeamItems,
                                         selectedItem.id,
                                     );
@@ -513,7 +516,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 pokemonBaselineDaysById.set(selectedItem.id, 0);
                                 continue;
                             }
-                            const baselineResult = calculateMinimumWorkDaysDetail(requirements, recipeBaselineRows);
+                            const baselineResult = buildBaselineWorkDaysResult(requirements);
                             pokemonBaselineDaysById.set(selectedItem.id, baselineResult?.totalDays ?? null);
                         }
 
