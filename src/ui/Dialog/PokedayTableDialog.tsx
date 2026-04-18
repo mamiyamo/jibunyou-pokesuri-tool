@@ -583,15 +583,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const totalWorkDaysResult = selectedTeamItems.length === 0 ? null :
                             buildSelectedWorkDaysResult(selectedTeamItems);
                         const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
-                        const pokemonContributionCountById = new Map<number, number>();
-                        let totalContributionCount = 0;
-                        for (const selectedItem of selectedTeamItems) {
-                            const count = recipe.ingredients.reduce((sum, ingredient) => (
-                                sum + (selectedTeamDetailMap[selectedItem.id]?.[ingredient.name]?.total ?? 0)
-                            ), 0);
-                            pokemonContributionCountById.set(selectedItem.id, count);
-                            totalContributionCount += count;
-                        }
                         const recipeRequiredCount = recipe.ingredients.reduce((sum, ingredient) =>
                             sum + ingredient.count * mealCount, 0);
                         const workDaysByPokemonId = new Map<number, number>();
@@ -606,6 +597,15 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
                             return {item, workDays};
                         });
+                        const pokemonContributionCountById = new Map<number, number>();
+                        for (const {item, workDays} of pokemonRows) {
+                            const count = recipe.ingredients.reduce((sum, ingredient) => {
+                                const detail = selectedTeamDetailMap[item.id]?.[ingredient.name];
+                                return sum + (detail?.total ?? 0) * workDays;
+                            }, 0);
+                            pokemonContributionCountById.set(item.id, count);
+                        }
+                        const totalContributionCount = recipeRequiredCount;
                         const contributionByPokemonId = new Map<number, number>();
                         const helpingBonusContributionByPokemonId = new Map<number, number>();
                         if (totalWorkDaysResult !== null && totalWorkDays !== null && totalWorkDays > 0) {
@@ -682,7 +682,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             );
                             pokemonBaselineCountById.set(
                                 selectedItem.id,
-                                itemRequirements.reduce((sum, value) => sum + value, 0),
+                                pokemonContributionCountById.get(selectedItem.id) ?? 0,
                             );
                         }
 
