@@ -5,8 +5,11 @@ import PokemonIv from './PokemonIv';
 import PokemonStrength, {
     createStrengthParameter, noFavoriteFieldIndex, recipeLevelBonus, StrengthParameter
 } from './PokemonStrength';
+import SubSkill from './SubSkill';
 import SubSkillList from './SubSkillList';
+import { SubSkillListProps } from './SubSkillList';
 import { IngredientType } from './PokemonRp';
+import { getEventBonus } from '../data/events';
 
 export type PokedayRecipeCategory = 'curry' | 'salad' | 'dessert';
 
@@ -44,6 +47,22 @@ export type IngredientBaselineSource = {
 
 export type IngredientBaselineDetailMaps =
     Partial<Record<IngredientName, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>>>;
+
+export type IngredientBaselinePokemonConfig = {
+    level: 30|60;
+    ingredientFinderM: boolean;
+    ingredientFinderS: boolean;
+    helpingSpeedM: boolean;
+    helpingSpeedS: boolean;
+};
+
+export const defaultIngredientBaselinePokemonConfig: IngredientBaselinePokemonConfig = {
+    level: 60,
+    ingredientFinderM: false,
+    ingredientFinderS: false,
+    helpingSpeedM: false,
+    helpingSpeedS: false,
+};
 
 export const pokedayRecipeGroups: {
     category: PokedayRecipeCategory;
@@ -279,6 +298,33 @@ export const ingredientBaselineSources: Partial<Record<IngredientName, Ingredien
     avocado: { ingredientName: 'avocado', pokemonName: 'Flygon', ingredientType: 'AAA' },
 };
 
+function buildIngredientBaselineSubSkills(
+    config: IngredientBaselinePokemonConfig,
+): SubSkillList {
+    const selectedSkills: SubSkill[] = [];
+    if (config.ingredientFinderM) {
+        selectedSkills.push(new SubSkill('Ingredient Finder M'));
+    }
+    if (config.ingredientFinderS) {
+        selectedSkills.push(new SubSkill('Ingredient Finder S'));
+    }
+    if (config.helpingSpeedM) {
+        selectedSkills.push(new SubSkill('Helping Speed M'));
+    }
+    if (config.helpingSpeedS) {
+        selectedSkills.push(new SubSkill('Helping Speed S'));
+    }
+    const activeLevels: (10|25|50|75|100)[] = config.level === 30 ? [10, 25] : [10, 25, 50, 75, 100];
+    const props: Partial<SubSkillListProps> = {};
+    activeLevels.forEach((level, index) => {
+        const subSkill = selectedSkills[index];
+        if (subSkill !== undefined) {
+            props[`lv${level}` as keyof SubSkillListProps] = subSkill;
+        }
+    });
+    return new SubSkillList(props);
+}
+
 function roundHalfUp(value: number): number {
     return Math.floor(value + 0.5);
 }
@@ -426,7 +472,8 @@ export function getRecipeDisplayEnergy(recipe: PokedayRecipe, parameter: Strengt
 }
 
 export function getRecipeFinalEnergy(recipe: PokedayRecipe, parameter: StrengthParameter): number {
-    return roundHalfUp(getRecipeDisplayEnergy(recipe, parameter) * (1 + parameter.fieldBonus / 100));
+    const eventBonus = getEventBonus(parameter.event, parameter.customEventBonus).dish;
+    return roundHalfUp(getRecipeDisplayEnergy(recipe, parameter) * (1 + parameter.fieldBonus / 100) * eventBonus);
 }
 
 export function createPokedayHelpParameter(): StrengthParameter {
@@ -648,8 +695,10 @@ export function getDailyIngredientDetailMapWithStrengthParameter(
 
 export function getIngredientBaselineDetailMap(
     parameter: StrengthParameter,
+    baselinePokemonConfig: IngredientBaselinePokemonConfig = defaultIngredientBaselinePokemonConfig,
 ): Partial<Record<IngredientName, PokedayIngredientDailyDetail>> {
     const ret: Partial<Record<IngredientName, PokedayIngredientDailyDetail>> = {};
+    const baselineSubSkills = buildIngredientBaselineSubSkills(baselinePokemonConfig);
     for (const ingredientName of IngredientNames) {
         const source = ingredientBaselineSources[ingredientName];
         if (source === undefined) {
@@ -657,11 +706,11 @@ export function getIngredientBaselineDetailMap(
         }
         const iv = new PokemonIv({
             pokemonName: source.pokemonName,
-            level: 60,
+            level: baselinePokemonConfig.level,
             skillLevel: 1,
             ingredient: source.ingredientType,
             nature: new Nature('Hardy'),
-            subSkills: new SubSkillList(),
+            subSkills: baselineSubSkills,
         });
         const detailMap = getDailyIngredientDetailMap(
             new PokemonBoxItem(iv),
@@ -678,8 +727,10 @@ export function getIngredientBaselineDetailMap(
 export function getIngredientBaselineDetailMaps(
     parameter: StrengthParameter,
     ingredientNames: IngredientName[],
+    baselinePokemonConfig: IngredientBaselinePokemonConfig = defaultIngredientBaselinePokemonConfig,
 ): IngredientBaselineDetailMaps {
     const ret: IngredientBaselineDetailMaps = {};
+    const baselineSubSkills = buildIngredientBaselineSubSkills(baselinePokemonConfig);
     for (const ingredientName of ingredientNames) {
         const source = ingredientBaselineSources[ingredientName];
         if (source === undefined) {
@@ -687,11 +738,11 @@ export function getIngredientBaselineDetailMaps(
         }
         const iv = new PokemonIv({
             pokemonName: source.pokemonName,
-            level: 60,
+            level: baselinePokemonConfig.level,
             skillLevel: 1,
             ingredient: source.ingredientType,
             nature: new Nature('Hardy'),
-            subSkills: new SubSkillList(),
+            subSkills: baselineSubSkills,
         });
         const detailMap = getDailyIngredientDetailMap(
             new PokemonBoxItem(iv),

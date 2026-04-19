@@ -15,14 +15,18 @@ import { StrengthParameter } from '../../util/PokemonStrength';
 import { loadBoxSortConfig, sortPokemonItems } from '../../util/PokemonBoxSort';
 import {
     calculateMinimumWorkDaysDetail, getDailyIngredientDetailMap, getRecipeFinalEnergy,
-    getIngredientBaselineDetailMaps, ingredientBaselineSources, pokedayRecipeGroups,
-    PokedayIngredientDailyDetail, PokedayRecipe,
+    getIngredientBaselineDetailMaps, defaultIngredientBaselinePokemonConfig,
+    ingredientBaselineSources, pokedayRecipeGroups,
+    PokedayIngredientDailyDetail, PokedayRecipe, MinimumWorkDaysResult,
+    IngredientBaselinePokemonConfig,
 } from '../../util/Pokeday';
 import { useTranslation } from 'react-i18next';
 import IngredientIcon from '../IvCalc/IngredientIcon';
 import PokemonIcon from '../IvCalc/PokemonIcon';
 
 type TeamSelectionMap = Record<string, (number | '')[]>;
+type RecipeIngredientEnabledMap = Record<string, Partial<Record<IngredientName, boolean>>>;
+type BaselinePokemonSkillKey = Exclude<keyof IngredientBaselinePokemonConfig, 'level'>;
 const PARTY_COUNT = 5;
 
 function recipeKey(recipe: PokedayRecipe): string {
@@ -283,6 +287,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const [mealCount, setMealCount] = React.useState<1 | 3>(3);
     const [useHelpingBonus, setUseHelpingBonus] = React.useState(false);
+    const [baselinePokemonConfig, setBaselinePokemonConfig] =
+        React.useState<IngredientBaselinePokemonConfig>(defaultIngredientBaselinePokemonConfig);
+    const [recipeIngredientEnabledByRecipeId, setRecipeIngredientEnabledByRecipeId] =
+        React.useState<RecipeIngredientEnabledMap>({});
     const [activePartyIndexByRecipeId, setActivePartyIndexByRecipeId] = React.useState<Record<string, number>>({});
     const [partySelections, setPartySelections] = React.useState<TeamSelectionMap[]>(
         () => Array.from({length: PARTY_COUNT}, () => ({})),
@@ -368,8 +376,8 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         return [...names];
     }, []);
     const ingredientBaselineDetailMaps = React.useMemo(() => (
-        getIngredientBaselineDetailMaps(pokedayParameter, ingredientNames)
-    ), [ingredientNames, pokedayParameter]);
+        getIngredientBaselineDetailMaps(pokedayParameter, ingredientNames, baselinePokemonConfig)
+    ), [baselinePokemonConfig, ingredientNames, pokedayParameter]);
     const eventLabel = parameter.event === 'none' ? 'なし' : t(`events.${parameter.event}`);
     const fieldLabel = t(`area.${parameter.fieldIndex}`);
     const energySettingLabel = parameter.isEnergyAlwaysFull
@@ -418,12 +426,37 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         });
     }, []);
 
+    const ensureRecipeIngredientEnabled = React.useCallback((source: RecipeIngredientEnabledMap) => {
+        const next: RecipeIngredientEnabledMap = {...source};
+        for (const group of pokedayRecipeGroups) {
+            for (const recipe of group.recipes) {
+                const key = recipeKey(recipe);
+                const current = next[key] ?? {};
+                const nextRecipe: Partial<Record<IngredientName, boolean>> = {...current};
+                for (const ingredient of recipe.ingredients) {
+                    if (nextRecipe[ingredient.name] === undefined) {
+                        nextRecipe[ingredient.name] = true;
+                    }
+                }
+                next[key] = nextRecipe;
+            }
+        }
+        return next;
+    }, []);
+
     React.useEffect(() => {
         if (!open || boxItems.length === 0) {
             return;
         }
         setPartySelections(prev => ensurePartySelections(prev));
     }, [boxItems, ensurePartySelections, open]);
+
+    React.useEffect(() => {
+        if (!open) {
+            return;
+        }
+        setRecipeIngredientEnabledByRecipeId(prev => ensureRecipeIngredientEnabled(prev));
+    }, [ensureRecipeIngredientEnabled, open]);
 
     const onMealCountChange = React.useCallback((
         _event: React.MouseEvent<HTMLElement>,
@@ -436,12 +469,37 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const onUseHelpingBonusChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setUseHelpingBonus(e.target.checked);
     }, []);
+    const onBaselineLevelChange = React.useCallback((_: React.MouseEvent<HTMLElement>, nextValue: 30|60 | null) => {
+        if (nextValue !== null) {
+            setBaselinePokemonConfig(prev => ({...prev, level: nextValue}));
+        }
+    }, []);
+    const onBaselineSkillToggle = React.useCallback((key: BaselinePokemonSkillKey) => (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const checked = e.target.checked;
+        setBaselinePokemonConfig(prev => ({...prev, [key]: checked}));
+    }, []);
     const onPartyChange = React.useCallback((recipeId: string, _: React.SyntheticEvent, nextValue: number) => {
         setActivePartyIndexByRecipeId(prev => ({
             ...prev,
             [recipeId]: nextValue,
         }));
         setOpenSelectKey(null);
+    }, []);
+
+    const onIngredientEnabledChange = React.useCallback((
+        recipeId: string,
+        ingredientName: IngredientName,
+    ) => (event: React.ChangeEvent<HTMLInputElement>) => {
+        const checked = event.target.checked;
+        setRecipeIngredientEnabledByRecipeId(prev => ({
+            ...prev,
+            [recipeId]: {
+                ...(prev[recipeId] ?? {}),
+                [ingredientName]: checked,
+            },
+        }));
     }, []);
 
     const onTeamSelectionChange = React.useCallback((recipeKeyText: string, partyIndex: number, index: number, value: string) => {
@@ -473,20 +531,94 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
             </Typography>
             <Typography sx={{mb: 2}} variant="body2" color="text.secondary">
                 参照中の設定: フィールド {fieldLabel} / レシピレベル {parameter.recipeLevel} / レシピボーナス {parameter.recipeBonus}% / フィールドボーナス {parameter.fieldBonus}% / 元気 {energySettingLabel} / タップ {tapSettingLabel} / スキル天井 {parameter.useSkillPity ? 'ON' : 'OFF'} / いいキャンプ {parameter.isGoodCampTicketSet ? 'ON' : 'OFF'} / イベント {eventLabel}
+                <br />
+                食材バッグの持ち越しは、食材表の必要数トグルで OFF にすると、最初から持っている前提として扱います。
             </Typography>
             <Accordion disableGutters sx={{mb: 1}}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="subtitle2">貢献度の基準</Typography>
+                    <Typography variant="subtitle2">寄与度の基準</Typography>
                 </AccordionSummary>
                 <AccordionDetails sx={{pt: 0}}>
-                    <Typography variant="body2" sx={{mb: 1}}>
-                        各食材の基準は、固定の基準ポケモンを今の設定で毎回再計算した1日供給量です。
-                        いいキャンプチケットやイベント、元気設定、タップ頻度もここに反映されます。
-                        イワパレスのように複数食材を持ってくるポケモンも、そのポケモン自身の実際の食材内訳で再計算しています。
-                        食材表は基準24h個数と24h個数の増減を見ています。
-                        ポケモン表は、各ポケモンの必要日数と、レシピに必要な量だけを基準ポケモンで再現した基準必要日数を見ています。
-                        余剰食材はレシピ外の食材をまとめ、食材ゲットSは「？」でまとめています。
-                    </Typography>
+                    <Stack spacing={1} sx={{mb: 1}}>
+                        <Typography variant="body2">
+                            各食材の基準は、固定の基準ポケモンを今の設定で毎回再計算した1日供給量です。
+                            いいキャンプチケットやイベント、元気設定、タップ頻度もここに反映されます。
+                            イワパレスのように複数食材を持ってくるポケモンも、そのポケモン自身の実際の食材内訳で再計算しています。
+                            食材表は基準24h個数と24h個数の増減を見ています。
+                            ポケモン表は、各ポケモンの最適稼働日数と、レシピに必要な量だけを基準ポケモンで再現した基準換算を見ています。
+                            余剰食材はレシピ外の食材をまとめ、食材ゲットSは「？」でまとめています。
+                        </Typography>
+                        <Stack
+                            direction={isSmallScreen ? 'column' : 'row'}
+                            spacing={1}
+                            flexWrap="wrap"
+                            alignItems="center"
+                            sx={{rowGap: 0.75}}
+                        >
+                            <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                基準ポケモン設定:
+                            </Typography>
+                            <ToggleButtonGroup
+                                exclusive
+                                size="small"
+                                value={baselinePokemonConfig.level}
+                                onChange={onBaselineLevelChange}
+                                aria-label="baseline level"
+                            >
+                                <ToggleButton value={30} aria-label="baseline level 30">
+                                    Lv30
+                                </ToggleButton>
+                                <ToggleButton value={60} aria-label="baseline level 60">
+                                    Lv60
+                                </ToggleButton>
+                            </ToggleButtonGroup>
+                            <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            size="small"
+                                            checked={baselinePokemonConfig.ingredientFinderM}
+                                            onChange={onBaselineSkillToggle('ingredientFinderM')}
+                                        />
+                                    }
+                                    label="食材M"
+                                />
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            size="small"
+                                            checked={baselinePokemonConfig.ingredientFinderS}
+                                            onChange={onBaselineSkillToggle('ingredientFinderS')}
+                                        />
+                                    }
+                                    label="食材S"
+                                />
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            size="small"
+                                            checked={baselinePokemonConfig.helpingSpeedM}
+                                            onChange={onBaselineSkillToggle('helpingSpeedM')}
+                                        />
+                                    }
+                                    label="お手伝いスピードM"
+                                />
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            size="small"
+                                            checked={baselinePokemonConfig.helpingSpeedS}
+                                            onChange={onBaselineSkillToggle('helpingSpeedS')}
+                                        />
+                                    }
+                                    label="お手伝いスピードS"
+                                />
+                            </Stack>
+                        </Stack>
+                        <Typography variant="caption" color="text.secondary" sx={{lineHeight: 1.2}}>
+                            Lv30では先頭2枠、Lv60では先頭4枠まで反映されます。
+                        </Typography>
+                    </Stack>
                     <TableContainer sx={{overflowX: 'auto', maxWidth: '100%'}}>
                         <Table size="small" sx={{width: '100%'}}>
                             <TableHead>
@@ -536,6 +668,11 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const recipeId = recipeKey(recipe);
                         const activePartyIndex = activePartyIndexByRecipeId[recipeId] ?? 0;
                         const team = partySelections[activePartyIndex]?.[recipeId] ?? ['', '', '', '', ''];
+                        const ingredientEnabledMap = recipeIngredientEnabledByRecipeId[recipeId] ?? {};
+                        const enabledIngredients = recipe.ingredients.filter(ingredient =>
+                            ingredientEnabledMap[ingredient.name] ?? true
+                        );
+                        const enabledIngredientNames = new Set(enabledIngredients.map(ingredient => ingredient.name));
                         const selectedIdsInOrder = team.filter((x): x is number => x !== '');
                         const orderedBoxItems = [
                             ...selectedIdsInOrder
@@ -547,18 +684,20 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             .map(id => id === '' ? null : boxItems.find(x => x.id === id) ?? null)
                             .filter((x): x is PokemonBoxItem => x !== null);
                         const finalEnergy = getRecipeFinalEnergy(recipe, parameter);
-                        const recipeRequirements = recipe.ingredients.map(ingredient => ingredient.count * mealCount);
-                        const recipeIngredientNames = new Set(recipe.ingredients.map(ingredient => ingredient.name));
-                        const recipeBaselineRows = recipe.ingredients
+                        const recipeRequirements = enabledIngredients.map(ingredient => ingredient.count * mealCount);
+                        const recipeIngredientNames = enabledIngredientNames;
+                        const recipeBaselineRows = enabledIngredients
                             .map(ingredient =>
-                                recipe.ingredients.map(targetIngredient =>
+                                enabledIngredients.map(targetIngredient =>
                                     ingredientBaselineDetailMaps[ingredient.name]?.[targetIngredient.name]?.total ?? 0
                                 )
                             );
-                        const recipeBaselineTotalDays = calculateMinimumWorkDaysDetail(
-                            recipeRequirements,
-                            recipeBaselineRows,
-                        )?.totalDays ?? null;
+                        const recipeBaselineTotalDays = enabledIngredients.length === 0 ? 0 : (
+                            calculateMinimumWorkDaysDetail(
+                                recipeRequirements,
+                                recipeBaselineRows,
+                            )?.totalDays ?? 0
+                        );
                         const buildTeamDetailMap = (
                             items: PokemonBoxItem[],
                             disabledHelpingBonusHolderId: number | null = null,
@@ -586,7 +725,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         ) => {
                             const detailMap = buildTeamDetailMap(items, disabledHelpingBonusHolderId);
                             return items.map(item =>
-                                recipe.ingredients.map(ingredient =>
+                                enabledIngredients.map(ingredient =>
                                     detailMap[item.id]?.[ingredient.name]?.total ?? 0
                                 )
                             );
@@ -594,33 +733,45 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const buildSelectedWorkDaysResult = (
                             items: PokemonBoxItem[],
                             disabledHelpingBonusHolderId: number | null = null,
-                        ) => calculateMinimumWorkDaysDetail(
-                            recipeRequirements,
-                            buildRatesByPokemon(items, disabledHelpingBonusHolderId),
-                        );
+                        ): MinimumWorkDaysResult => {
+                            if (recipeRequirements.every(value => value <= 0)) {
+                                return {
+                                    totalDays: 0,
+                                    workDaysByPokemon: items.map(() => 0),
+                                };
+                            }
+                            const result = calculateMinimumWorkDaysDetail(
+                                recipeRequirements,
+                                buildRatesByPokemon(items, disabledHelpingBonusHolderId),
+                            );
+                            return result ?? {
+                                totalDays: 0,
+                                workDaysByPokemon: items.map(() => 0),
+                            };
+                        };
                         const selectedTeamDetailMap = buildTeamDetailMap(selectedTeamItems);
                         const totalWorkDaysResult = selectedTeamItems.length === 0 ? null :
                             buildSelectedWorkDaysResult(selectedTeamItems);
                         const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
+                        const energyPerDay = totalWorkDays === null || totalWorkDays <= 0 ? null :
+                            finalEnergy * mealCount / totalWorkDays;
                         const workDaysByPokemonId = new Map<number, number>();
                         if (totalWorkDaysResult !== null) {
                             selectedTeamItems.forEach((item, index) => {
                                 workDaysByPokemonId.set(item.id, totalWorkDaysResult.workDaysByPokemon[index] ?? 0);
                             });
                         }
-                        const energyPerDay = totalWorkDays === null || totalWorkDays <= 0 ? null :
-                            finalEnergy * mealCount / totalWorkDays;
                         const pokemonRows = totalWorkDaysResult === null ? [] : selectedTeamItems.map((item, index) => {
                             const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
                             return {item, workDays};
                         });
                         const recipeNeedCountMap = Object.fromEntries(recipe.ingredients.map(ingredient => [
                             ingredient.name,
-                            ingredient.count * mealCount,
+                            (ingredientEnabledMap[ingredient.name] ?? true) ? ingredient.count * mealCount : 0,
                         ] as const)) as Partial<Record<IngredientName, number>>;
                         const pokemonContributionCountById = new Map<number, SurplusIngredientPart[]>();
                         for (const {item, workDays} of pokemonRows) {
-                            const parts = recipe.ingredients
+                            const parts = enabledIngredients
                                 .map(ingredient => {
                                     const detail = selectedTeamDetailMap[item.id]?.[ingredient.name];
                                     const count = (detail?.total ?? 0) * workDays;
@@ -637,7 +788,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 .filter((part): part is SurplusIngredientPart => part !== null);
                             pokemonContributionCountById.set(item.id, parts);
                         }
-                        const totalContributionCountParts = recipe.ingredients
+                        const totalContributionCountParts = enabledIngredients
                             .map(ingredient => ({
                                 key: `total:${ingredient.name}`,
                                 ingredientName: ingredient.name,
@@ -712,9 +863,10 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 pokemonBaselineCountById.set(selectedItem.id, []);
                                 continue;
                             }
-                            const itemRequirements = recipe.ingredients.map(ingredient => {
-                                const actualDaily = selectedTeamDetailMap[selectedItem.id]?.[ingredient.name]?.total ?? 0;
-                                return Math.min(actualDaily, ingredient.count * mealCount);
+                            const itemRequirements = enabledIngredients.map(ingredient => {
+                                const carriedCount = pokemonContributionCountById.get(selectedItem.id)
+                                    ?.find(part => part.ingredientName === ingredient.name)?.count ?? 0;
+                                return Math.min(carriedCount, ingredient.count * mealCount);
                             });
                             if (itemRequirements.every(value => value <= 0)) {
                                 pokemonBaselineDaysById.set(selectedItem.id, 0);
@@ -738,7 +890,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                     <Typography variant="subtitle2">{recipe.name}</Typography>
                                     <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-start">
                                         <Typography variant="body2">
-                                            最終エナジー: {formatWithComma(finalEnergy)}
+                                            最終エナジー（{mealCount}食）: {formatWithComma(finalEnergy * mealCount)}
                                         </Typography>
                                         <Box
                                             onClick={e => e.stopPropagation()}
@@ -781,7 +933,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 </Typography>
                                             )}
                                             <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
-                                                1日あたりエナジー:
+                                                稼働効率:
                                             </Typography>
                                             {energyPerDay !== null ? (
                                                 <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
@@ -879,7 +1031,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             </Typography>
                                                                 {helpingBonusContributionByPokemonId.has(selected.id) && (
                                                                     <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                        おてつだいボーナス貢献: {formatDays(
+                                                                        おてボ寄与度: {formatDays(
                                                                             helpingBonusContributionByPokemonId.get(selected.id) ?? 0
                                                                         )}日
                                                                 </Typography>
@@ -941,7 +1093,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 </Typography>
                                                                 {helpingBonusContributionByPokemonId.has(item.id) && (
                                                                     <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                        おてつだいボーナス貢献: {formatDays(
+                                                                        おてボ寄与度: {formatDays(
                                                                             helpingBonusContributionByPokemonId.get(item.id) ?? 0
                                                                         )}日
                                                                     </Typography>
@@ -973,7 +1125,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                     })}
                                 </Stack>
                                 <Typography variant="subtitle2" sx={{mb: 0.5}}>
-                                    ポケモン別必要日数
+                                    ポケモン別最適稼働日数
                                 </Typography>
                                 <TableContainer sx={{
                                     mb: 1,
@@ -994,12 +1146,12 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                 </TableCell>
                                                 <TableCell align="right" sx={{width: isSmallScreen ? 80 : 'auto'}}>
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                        必要日数
+                                                        最適稼働日数
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell align="right" sx={{width: isSmallScreen ? 82 : 'auto'}}>
                                                     <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                        基準必要日数
+                                                        基準換算
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell align="right" sx={{width: isSmallScreen ? 64 : 'auto'}}>
@@ -1090,12 +1242,12 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                             </Typography>
                                                             {contributionByPokemonId.has(item.id) && (
                                                                 <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                    貢献度: {formatDays(contributionByPokemonId.get(item.id) ?? 0)}日
+                                                                    寄与度: {formatDays(contributionByPokemonId.get(item.id) ?? 0)}日
                                                                 </Typography>
                                                             )}
                                                             {helpingBonusContributionByPokemonId.has(item.id) && (
                                                                 <Typography variant="caption" sx={{whiteSpace: 'nowrap'}}>
-                                                                    おてつだいボーナス貢献: {formatDays(
+                                                                    おてボ寄与度: {formatDays(
                                                                         helpingBonusContributionByPokemonId.get(item.id) ?? 0
                                                                     )}日
                                                                 </Typography>
@@ -1251,10 +1403,35 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 px: isSmallScreen ? 0 : 2,
                                                                 pl: isSmallScreen ? 0.1 : 2,
                                                                 pr: isSmallScreen ? 0.1 : 2,
-                                                                width: isSmallScreen ? 36 : 'auto',
+                                                                width: isSmallScreen ? 56 : 'auto',
                                                             }}
                                                         >
-                                                            {formatWithComma(row.ingredient.count)}
+                                                            {(() => {
+                                                                const ingredientEnabled = ingredientEnabledMap[row.ingredient.name] ?? true;
+                                                                const requiredCount = ingredientEnabled ? row.ingredient.count * mealCount : 0;
+                                                                return (
+                                                                    <Stack spacing={0} alignItems="flex-end">
+                                                                        <Stack direction="row" spacing={0.4} alignItems="center">
+                                                                            <Typography
+                                                                                variant="body2"
+                                                                                sx={{lineHeight: 1, opacity: ingredientEnabled ? 1 : 0.45}}
+                                                                            >
+                                                                                {formatWithComma(requiredCount)}
+                                                                            </Typography>
+                                                                            <Switch
+                                                                                size="small"
+                                                                                checked={ingredientEnabled}
+                                                                                onChange={onIngredientEnabledChange(recipeId, row.ingredient.name)}
+                                                                                inputProps={{'aria-label': `${recipe.name} ${row.ingredient.name} collect toggle`}}
+                                                                                sx={{transform: 'scale(0.82)', ml: -0.6, mr: -0.8}}
+                                                                            />
+                                                                        </Stack>
+                                                                        <Typography variant="caption" sx={{lineHeight: 1, color: 'text.secondary'}}>
+                                                                            {ingredientEnabled ? '集める' : '持ち越し'}
+                                                                        </Typography>
+                                                                    </Stack>
+                                                                );
+                                                            })()}
                                                         </TableCell>
                                                         <TableCell
                                                             align="right"

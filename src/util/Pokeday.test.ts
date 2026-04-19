@@ -52,4 +52,24 @@ describe('Pokeday', () => {
         expect((camp.milk?.total ?? 0)).toBeGreaterThan(base.milk?.total ?? 0);
         expect((camp.oil?.total ?? 0)).toBeGreaterThan(base.oil?.total ?? 0);
     });
+
+    test('ingredient baseline pokemon config changes daily counts', () => {
+        const base = getIngredientBaselineDetailMap(createPokedayHelpParameter(), {
+            level: 60,
+            ingredientFinderM: false,
+            ingredientFinderS: false,
+            helpingSpeedM: false,
+            helpingSpeedS: false,
+        });
+        const boosted = getIngredientBaselineDetailMap(createPokedayHelpParameter(), {
+            level: 60,
+            ingredientFinderM: true,
+            ingredientFinderS: true,
+            helpingSpeedM: true,
+            helpingSpeedS: true,
+        });
+
+        expect((boosted.milk?.total ?? 0)).toBeGreaterThan(base.milk?.total ?? 0);
+        expect((boosted.oil?.total ?? 0)).toBeGreaterThan(base.oil?.total ?? 0);
+    });
 });
