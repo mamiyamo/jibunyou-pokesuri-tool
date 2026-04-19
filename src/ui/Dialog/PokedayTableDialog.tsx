@@ -74,10 +74,6 @@ function formatWorkDays(value: number): string {
     return `${formatDays(value)}日（${formatHoursMinutesFromDays(value)}）`;
 }
 
-function formatCount(value: number): string {
-    return `${formatDailyCount(value)}個`;
-}
-
 type SurplusIngredientPart = {
     key: string;
     ingredientName: IngredientName | '?';
@@ -92,6 +88,8 @@ function getPokemonSkillName(item: PokemonBoxItem): string {
 function buildSurplusIngredientParts(
     item: PokemonBoxItem,
     detailMap: Partial<Record<IngredientName, PokedayIngredientDailyDetail>>,
+    recipeNeedCountMap: Partial<Record<IngredientName, number>>,
+    workDays: number,
     recipeIngredientNames: Set<IngredientName>,
 ): SurplusIngredientPart[] {
     const skillName = getPokemonSkillName(item);
@@ -99,29 +97,46 @@ function buildSurplusIngredientParts(
     const ret: SurplusIngredientPart[] = [];
     let mysteryCount = 0;
     for (const ingredientName of IngredientNames) {
-        if (recipeIngredientNames.has(ingredientName)) {
-            continue;
-        }
         const detail = detailMap[ingredientName];
         if (detail === undefined || detail.total <= 0) {
             continue;
         }
+        const totalCount = detail.total * workDays;
+        const recipeNeedCount = recipeNeedCountMap[ingredientName] ?? 0;
+        if (recipeIngredientNames.has(ingredientName)) {
+            const surplusCount = Math.max(0, totalCount - recipeNeedCount);
+            if (surplusCount <= 0) {
+                continue;
+            }
+            if (isIngredientMagnet) {
+                mysteryCount += surplusCount;
+                continue;
+            }
+            ret.push({
+                key: `${item.id}:${ingredientName}:surplus`,
+                ingredientName,
+                count: surplusCount,
+                isMystery: false,
+            });
+            continue;
+        }
         if (isIngredientMagnet) {
-            if (detail.base > 0) {
+            const baseCount = detail.base * workDays;
+            if (baseCount > 0) {
                 ret.push({
                     key: `${item.id}:${ingredientName}:base`,
                     ingredientName,
-                    count: detail.base,
+                    count: baseCount,
                     isMystery: false,
                 });
             }
-            mysteryCount += detail.skill;
+            mysteryCount += detail.skill * workDays;
             continue;
         }
         ret.push({
             key: `${item.id}:${ingredientName}`,
             ingredientName,
-            count: detail.total,
+            count: totalCount,
             isMystery: false,
         });
     }
@@ -207,6 +222,10 @@ function renderSurplusIngredientParts(parts: SurplusIngredientPart[]) {
             </Stack>
         ))}
     </Stack>;
+}
+
+function renderIngredientParts(parts: SurplusIngredientPart[]) {
+    return renderSurplusIngredientParts(parts);
 }
 
 function getDisplayName(item: PokemonBoxItem, t: (key: string) => string): string {
@@ -583,8 +602,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const totalWorkDaysResult = selectedTeamItems.length === 0 ? null :
                             buildSelectedWorkDaysResult(selectedTeamItems);
                         const totalWorkDays = totalWorkDaysResult?.totalDays ?? null;
-                        const recipeRequiredCount = recipe.ingredients.reduce((sum, ingredient) =>
-                            sum + ingredient.count * mealCount, 0);
                         const workDaysByPokemonId = new Map<number, number>();
                         if (totalWorkDaysResult !== null) {
                             selectedTeamItems.forEach((item, index) => {
@@ -597,15 +614,37 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             const workDays = totalWorkDaysResult.workDaysByPokemon[index] ?? 0;
                             return {item, workDays};
                         });
-                        const pokemonContributionCountById = new Map<number, number>();
+                        const recipeNeedCountMap = Object.fromEntries(recipe.ingredients.map(ingredient => [
+                            ingredient.name,
+                            ingredient.count * mealCount,
+                        ] as const)) as Partial<Record<IngredientName, number>>;
+                        const pokemonContributionCountById = new Map<number, SurplusIngredientPart[]>();
                         for (const {item, workDays} of pokemonRows) {
-                            const count = recipe.ingredients.reduce((sum, ingredient) => {
-                                const detail = selectedTeamDetailMap[item.id]?.[ingredient.name];
-                                return sum + (detail?.total ?? 0) * workDays;
-                            }, 0);
-                            pokemonContributionCountById.set(item.id, count);
+                            const parts = recipe.ingredients
+                                .map(ingredient => {
+                                    const detail = selectedTeamDetailMap[item.id]?.[ingredient.name];
+                                    const count = (detail?.total ?? 0) * workDays;
+                                    if (count <= 0) {
+                                        return null;
+                                    }
+                                    return {
+                                        key: `${item.id}:${ingredient.name}:count`,
+                                        ingredientName: ingredient.name,
+                                        count,
+                                        isMystery: false,
+                                    } satisfies SurplusIngredientPart;
+                                })
+                                .filter((part): part is SurplusIngredientPart => part !== null);
+                            pokemonContributionCountById.set(item.id, parts);
                         }
-                        const totalContributionCount = recipeRequiredCount;
+                        const totalContributionCountParts = recipe.ingredients
+                            .map(ingredient => ({
+                                key: `total:${ingredient.name}`,
+                                ingredientName: ingredient.name,
+                                count: ingredient.count * mealCount,
+                                isMystery: false,
+                            }))
+                            .filter(part => part.count > 0);
                         const contributionByPokemonId = new Map<number, number>();
                         const helpingBonusContributionByPokemonId = new Map<number, number>();
                         if (totalWorkDaysResult !== null && totalWorkDays !== null && totalWorkDays > 0) {
@@ -653,17 +692,24 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                         const teamSurplusParts: SurplusIngredientPart[] = [];
                         for (const selectedItem of selectedTeamItems) {
                             const detailMap = selectedTeamDetailMap[selectedItem.id] ?? {};
-                            const surplusParts = buildSurplusIngredientParts(selectedItem, detailMap, recipeIngredientNames);
+                            const workDays = workDaysByPokemonId.get(selectedItem.id) ?? 0;
+                            const surplusParts = buildSurplusIngredientParts(
+                                selectedItem,
+                                detailMap,
+                                recipeNeedCountMap,
+                                workDays,
+                                recipeIngredientNames,
+                            );
                             pokemonSurplusPartsById.set(selectedItem.id, surplusParts);
                             teamSurplusParts.push(...surplusParts);
                         }
                         const totalSurplusParts = mergeSurplusIngredientParts(teamSurplusParts);
                         const pokemonBaselineDaysById = new Map<number, number | null>();
-                        const pokemonBaselineCountById = new Map<number, number>();
+                        const pokemonBaselineCountById = new Map<number, SurplusIngredientPart[]>();
                         for (const selectedItem of selectedTeamItems) {
                             if (recipeBaselineTotalDays === null) {
                                 pokemonBaselineDaysById.set(selectedItem.id, null);
-                                pokemonBaselineCountById.set(selectedItem.id, 0);
+                                pokemonBaselineCountById.set(selectedItem.id, []);
                                 continue;
                             }
                             const itemRequirements = recipe.ingredients.map(ingredient => {
@@ -672,7 +718,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             });
                             if (itemRequirements.every(value => value <= 0)) {
                                 pokemonBaselineDaysById.set(selectedItem.id, 0);
-                                pokemonBaselineCountById.set(selectedItem.id, 0);
+                                pokemonBaselineCountById.set(selectedItem.id, []);
                                 continue;
                             }
                             const itemBaselineResult = calculateMinimumWorkDaysDetail(itemRequirements, recipeBaselineRows);
@@ -682,7 +728,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             );
                             pokemonBaselineCountById.set(
                                 selectedItem.id,
-                                pokemonContributionCountById.get(selectedItem.id) ?? 0,
+                                pokemonContributionCountById.get(selectedItem.id) ?? [],
                             );
                         }
 
@@ -982,7 +1028,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 {formatWorkDays(totalWorkDays)}
                                                             </Typography>
                                                             <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                {formatCount(totalContributionCount)}
+                                                                {renderIngredientParts(totalContributionCountParts)}
                                                             </Typography>
                                                         </Stack>
                                                     </TableCell>
@@ -992,7 +1038,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 {recipeBaselineTotalDays === null ? 'ー' : formatWorkDays(recipeBaselineTotalDays)}
                                                             </Typography>
                                                             <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                {recipeBaselineTotalDays === null ? 'ー' : formatCount(recipeRequiredCount)}
+                                                                {recipeBaselineTotalDays === null ? 'ー' : renderIngredientParts(totalContributionCountParts)}
                                                             </Typography>
                                                         </Stack>
                                                     </TableCell>
@@ -1063,7 +1109,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 {workDays <= 0 ? '0.00日（0時間0分）' : formatWorkDays(workDays)}
                                                             </Typography>
                                                             <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                {formatCount(pokemonContributionCountById.get(item.id) ?? 0)}
+                                                                {renderIngredientParts(pokemonContributionCountById.get(item.id) ?? [])}
                                                             </Typography>
                                                         </Stack>
                                                     </TableCell>
@@ -1073,7 +1119,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 {baselineWorkDays === null ? 'ー' : `${formatDays(baselineWorkDays)}日`}
                                                             </Typography>
                                                             <Typography variant="caption" sx={{lineHeight: 1}}>
-                                                                {baselineWorkDays === null ? 'ー' : formatCount(pokemonBaselineCountById.get(item.id) ?? 0)}
+                                                                {baselineWorkDays === null ? 'ー' : renderIngredientParts(pokemonBaselineCountById.get(item.id) ?? [])}
                                                             </Typography>
                                                         </Stack>
                                                     </TableCell>
