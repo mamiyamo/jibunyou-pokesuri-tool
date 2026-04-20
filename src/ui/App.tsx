@@ -105,9 +105,7 @@ function useMultilingual(config: AppConfig) {
  * @return Current app type and setter for it.
  */
 function useRouter(language: string): [AppType, (v:AppType) => void] {
-    const initialApp: AppType = (
-        window.location.pathname.startsWith("/jibunyou-pokesuri-tool/iv/") ?
-        "IvCalc" : "ResearchCalc");
+    const initialApp: AppType = "IvCalc";
 
     const { t, i18n } = useTranslation();
     const [currentApp, setCurrentApp] = useState<AppType>(initialApp);
