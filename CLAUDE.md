@@ -6,7 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a React-based web application providing calculation tools for Pokémon Sleep:
 - **IV Calculator** (`/iv/`) - Individual value calculator with Pokémon box management
-- **Research Calculator** (root) - Drowsy Power calculation tool
 
 The application is built with Vite, TypeScript, React 19, and Material-UI v7, supporting 5 languages (en, ja, ko, zh-CN, zh-TW) via react-i18next.
 
@@ -30,10 +29,10 @@ This project is licensed under the MIT License.
 
 ### Application Structure
 
-The app uses a **dual-app architecture** with client-side routing:
-- `src/ui/App.tsx` - Root component that switches between ResearchCalc and IvCalc based on URL path
+The app uses a **single-app-first architecture** with client-side routing:
+- `src/ui/App.tsx` - Root component that loads IvCalc by default and keeps ResearchCalc hidden from the normal UI
 - `src/index.tsx` - Entry point handling i18n initialization, error handlers, and PWA setup
-- URL-based routing: `/jibunyou-pokesuri-tool/` → Research Calc, `/jibunyou-pokesuri-tool/iv/` → IV Calc
+- URL-based routing: `/jibunyou-pokesuri-tool/` → IV Calc, `/jibunyou-pokesuri-tool/iv/` → IV Calc
 
 ### Two Main Applications
 
@@ -43,11 +42,6 @@ The app uses a **dual-app architecture** with client-side routing:
 - Box system for storing multiple Pokémon with localStorage persistence
 - State includes: pokemonIv, box, parameter (strength settings), dialog states, tab indices
 - Main component: `IvCalcApp.tsx` orchestrates all sub-components and state
-
-**2. Research Calculator (`src/ui/ResearchCalc/`)**
-- Simpler state management with useState
-- Configuration persisted via `ResearchCalcAppConfig.ts`
-- Main component: `ResearchCalcApp.tsx`
 
 ### Core Utilities (`src/util/`)
 
