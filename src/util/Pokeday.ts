@@ -141,6 +141,18 @@ export const pokedayRecipeGroups: {
         recipes: [
             {
                 category: 'salad',
+                title: 'ごろごろねっとうサラダ',
+                name: 'ごろごろねっとうサラダ',
+                baseEnergy: 25356,
+                ingredients: [
+                    { name: 'pumpkin', count: 20 },
+                    { name: 'potato', count: 30 },
+                    { name: 'corn', count: 18 },
+                    { name: 'mushroom', count: 27 },
+                ],
+            },
+            {
+                category: 'salad',
                 title: 'じならしワカモレチップス',
                 name: 'じならしワカモレチップス',
                 baseEnergy: 25162,
