@@ -25,10 +25,6 @@ export default function ToolBar({app, onAppChange, onAppConfigChange}: ToolBarPr
 
     const [moreMenuAnchor, setMoreMenuAnchor] = useState<HTMLElement | null>(null);
     const isMoreMenuOpen = Boolean(moreMenuAnchor);
-    const researchCalcClick = () => {
-        onAppChange("ResearchCalc");
-        setMoreMenuAnchor(null);
-    };
     const rpCalcClick = () => {
         onAppChange("IvCalc");
         setMoreMenuAnchor(null);
@@ -80,10 +76,6 @@ export default function ToolBar({app, onAppChange, onAppConfigChange}: ToolBarPr
             </IconButton>
             <Menu anchorEl={moreMenuAnchor} open={isMoreMenuOpen}
                 onClose={onMoreMenuClose} anchorOrigin={{vertical: "bottom", horizontal: "left"}}>
-                <MenuItem onClick={researchCalcClick}>
-                    <ListItemIcon>{app === "ResearchCalc" ? <CheckIcon/> : <Icon/>}</ListItemIcon>
-                    {t("ResearchCalc.short title")}
-                </MenuItem>
                 <MenuItem onClick={rpCalcClick}>
                     <ListItemIcon>{app === "IvCalc" ? <CheckIcon/> : <Icon/>}</ListItemIcon>
                     {t("IvCalc.short title")}

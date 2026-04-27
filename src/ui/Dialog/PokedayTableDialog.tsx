@@ -3,7 +3,7 @@ import {
     Accordion, AccordionDetails, AccordionSummary, Box, Button, Dialog, DialogActions,
     DialogContent, DialogTitle, FormControl, FormControlLabel, MenuItem, Paper, Select,
     SelectChangeEvent, Stack, Switch, Tab, Tabs, Table, TableBody, TableCell, TableContainer,
-    TableHead, TableRow, ToggleButton, ToggleButtonGroup, Typography,
+    TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -286,6 +286,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const [mealCount, setMealCount] = React.useState<1 | 3>(3);
+    const [greatSuccessRatePercent, setGreatSuccessRatePercent] = React.useState(10);
     const [useHelpingBonus, setUseHelpingBonus] = React.useState(false);
     const [baselinePokemonConfig, setBaselinePokemonConfig] =
         React.useState<IngredientBaselinePokemonConfig>(defaultIngredientBaselinePokemonConfig);
@@ -465,6 +466,13 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         if (nextValue !== null) {
             setMealCount(nextValue);
         }
+    }, []);
+    const onGreatSuccessRateChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const nextValue = Number(e.target.value);
+        if (Number.isNaN(nextValue)) {
+            return;
+        }
+        setGreatSuccessRatePercent(Math.max(1, Math.min(100, Math.trunc(nextValue))));
     }, []);
     const onUseHelpingBonusChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setUseHelpingBonus(e.target.checked);
@@ -684,6 +692,8 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                             .map(id => id === '' ? null : boxItems.find(x => x.id === id) ?? null)
                             .filter((x): x is PokemonBoxItem => x !== null);
                         const finalEnergy = getRecipeFinalEnergy(recipe, parameter);
+                        const greatSuccessExpectedEnergy =
+                            finalEnergy * mealCount * (1 + greatSuccessRatePercent / 100);
                         const recipeRequirements = enabledIngredients.map(ingredient => ingredient.count * mealCount);
                         const recipeIngredientNames = enabledIngredientNames;
                         const recipeBaselineRows = enabledIngredients
@@ -889,9 +899,34 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                 <Stack sx={{width: '100%'}} spacing={0.5}>
                                     <Typography variant="subtitle2">{recipe.name}</Typography>
                                     <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-start">
-                                        <Typography variant="body2">
-                                            最終エナジー（{mealCount}食）: {formatWithComma(finalEnergy * mealCount)}
-                                        </Typography>
+                                        <Stack spacing={0.25}>
+                                            <Typography variant="body2">
+                                                最終エナジー（{mealCount}食）: {formatWithComma(finalEnergy * mealCount)}
+                                            </Typography>
+                                            <Stack direction="row" spacing={0.75} flexWrap="wrap" alignItems="center">
+                                                <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                                    大成功率:
+                                                </Typography>
+                                                <TextField
+                                                    value={greatSuccessRatePercent}
+                                                    onChange={onGreatSuccessRateChange}
+                                                    type="number"
+                                                    variant="standard"
+                                                    size="small"
+                                                    InputProps={{
+                                                        endAdornment: <Typography variant="body2" sx={{ml: 0.5}}>%</Typography>,
+                                                        inputProps: {min: 1, max: 100, step: 1},
+                                                    }}
+                                                    sx={{
+                                                        width: 72,
+                                                        '& input': {textAlign: 'right'},
+                                                    }}
+                                                />
+                                                <Typography variant="body2" sx={{whiteSpace: 'nowrap'}}>
+                                                    期待値: {formatWithComma(Math.round(greatSuccessExpectedEnergy))}
+                                                </Typography>
+                                            </Stack>
+                                        </Stack>
                                         <Box
                                             onClick={e => e.stopPropagation()}
                                             onMouseDown={e => e.stopPropagation()}
