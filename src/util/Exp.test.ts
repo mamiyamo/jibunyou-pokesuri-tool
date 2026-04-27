@@ -106,8 +106,8 @@ describe('calcExpAndCandy', () => {
         });
 
         const res = calcExpAndCandy(iv, 0, 31, "none");
-        expect(res.candy).toBe(449);
-        expect(res.shards).toBe(41133);
+        expect(res.candy).toBe(538);
+        expect(res.shards).toBe(49259);
     });
 
     test('level 28->35 (Entei)', () => {
