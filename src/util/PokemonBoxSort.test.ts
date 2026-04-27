@@ -3,6 +3,7 @@ import {
     SimpleStrengthResult, StrengthCalculator,
     sortPokemonItems, loadBoxSortConfig,
  } from './PokemonBoxSort';
+import { NoTap } from './Energy';
 import Nature from './Nature';
 import { PokemonBoxItem } from './PokemonBox';
 import PokemonIv from './PokemonIv';
@@ -248,7 +249,7 @@ describe('sortPokemonItems', () => {
     describe('ingredient sort', () => {
         test('returns error when tapFrequency is none', () => {
             const parameter = createStrengthParameter({});
-            parameter.tapFrequency = 'none';
+            parameter.tapFrequencyAwake = NoTap;
 
             const items = [
                 new PokemonBoxItem(new PokemonIv({ pokemonName: 'Pikachu' })),
@@ -272,14 +273,14 @@ describe('sortPokemonItems', () => {
                     case 'Pikachu':
                         return createStrengthResult({
                             ingredients: [
-                                {name: 'apple', count: 8, strength: 800, helpCount: 8},
-                                {name: 'ginger', count: 16, strength: 1600, helpCount: 16},
+                                {name: 'apple', count: 8, strength: 800, helpCount: 8, countPerHelp: 1, overflowCount: 0, slots: []},
+                                {name: 'ginger', count: 16, strength: 1600, helpCount: 8, countPerHelp: 2, overflowCount: 0, slots: []},
                             ],
                         });
                     case 'Eevee (Halloween)':
                         return createStrengthResult({
                             ingredients: [
-                                {name: 'pumpkin', count: 20, strength: 5000, helpCount: 20},
+                                {name: 'pumpkin', count: 20, strength: 5000, helpCount: 20, countPerHelp: 1, overflowCount: 0, slots: []},
                             ],
                         });
                 }
@@ -328,7 +329,7 @@ describe('sortPokemonItems', () => {
     describe('skill sort', () => {
         test('returns error when tapFrequency is none', () => {
             const parameter = createStrengthParameter({});
-            parameter.tapFrequency = 'none';
+            parameter.tapFrequencyAwake = NoTap;
 
             const items = [
                 new PokemonBoxItem(new PokemonIv({ pokemonName: 'Pikachu' })),

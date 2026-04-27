@@ -1,5 +1,6 @@
 import React from 'react';
 import { getEventBonus } from '../../../data/events';
+import { NoTap } from '../../../util/Energy';
 import { round1, round2, formatNice, formatWithComma } from '../../../util/NumberUtil';
 import PokemonStrength, { IngredientStrength, StrengthResult,
     recipeLevelBonus
@@ -49,7 +50,7 @@ const IngHelpDialog = React.memo(({open, strength, result, dispatch, onClose}: {
     }
 
     const param = strength.parameter;
-    if (param.tapFrequency === 'none') {
+    if (param.tapFrequencyAwake === NoTap) {
         return (
             <Dialog open={open} onClose={onClose}>
                 <DialogContent style={{fontSize: '0.95rem', whiteSpace: 'pre-wrap'}}>
@@ -63,35 +64,7 @@ const IngHelpDialog = React.memo(({open, strength, result, dispatch, onClose}: {
         );
     }
 
-    const ingSlot = strength.pokemonIv.level < 30 ? 1 :
-        strength.pokemonIv.level < 60 ? 2 : 3;
-    const ings = [[result.ing1]];
-    if (ingSlot > 1) {
-        if (result.ing2.name === "unknown") {
-            // Darkrai not unlocked
-        }
-        else if (ings[0][0].name === result.ing2.name) {
-            ings[0].push(result.ing2);
-        }
-        else {
-            ings.push([result.ing2]);
-        }
-    }
-    if (ingSlot > 2 && result.ing3 !== undefined) {
-        if (result.ing3.name === "unknown") {
-            // Darkrai not unlocked
-        }
-        else if (ings[0][0].name === result.ing3.name) {
-            ings[0].push(result.ing3);
-        }
-        else if (ings.length > 1 && ings[1][0].name === result.ing3.name) {
-            ings[1].push(result.ing3);
-        }
-        else {
-            ings.push([result.ing3]);
-        }
-    }
-
+    const ings = result.ingredients;
     const ingInRecipeStrengthRate = param.recipeBonus === 0 ? 1 :
         (1 + param.recipeBonus / 100) * (1 + recipeLevelBonus[param.recipeLevel] / 100);
     const recipeRate = ingInRecipeStrengthRate * 0.8 + 0.2;
@@ -106,23 +79,25 @@ const IngHelpDialog = React.memo(({open, strength, result, dispatch, onClose}: {
         </DialogTitle>
         <DialogContent>
             <div className={`inggrid ings${ings.length}`}>
-                {getIngDetail(strength, result, recipeRate, ingSlot, ings[0], t)}
-                {ings.length > 1 && getIngDetail(strength, result, recipeRate, ingSlot, ings[1], t)}
-                {ings.length > 2 && getIngDetail(strength, result, recipeRate, ingSlot, ings[2], t)}
+                {getIngDetail(strength, result, recipeRate, ings[0], t)}
+                {ings.length > 1 && getIngDetail(strength, result, recipeRate, ings[1], t)}
+                {ings.length > 2 && getIngDetail(strength, result, recipeRate, ings[2], t)}
             </div>
             <article>
                 <div><span className="box box3">{round2(result.ingHelpCount)}</span></div>
                 <span>{t('ing help count')}</span>
                 <footer>
-                    {round1(result.notFullHelpCount)}
+                    {round1(result.total.normal)}
                     <small> ({t('normal help count')})</small>
                     <> × </>
                     {round1(result.ingRate * 100)}%
                     <small> ({t('ingredient rate')})</small>
                 </footer>
-                <div><span className="box box1">{round1(ings[0].reduce((p, c) => p + c.count, 0))}</span></div>
+                <div><span className="box box7">{round2(ings[0].overflowCount)}</span></div>
+                <span>{t('inventory full lost')}</span>
+                <div><span className="box box1">{round1(ings[0].count)}</span></div>
                 <span>{t('ing count')}</span>
-                <div><span className="box box2">{ingredientStrength[ings[0][0].name]}</span></div>
+                <div><span className="box box2">{ingredientStrength[ings[0].name]}</span></div>
                 <span>{t('strength per ing')}</span>
                 <div><span className="box box5">{round2(recipeRate)}</span></div>
                 <span>{t('recipe multiplier')}<InfoButton onClick={onRecipeBonusInfoClick}/></span>
@@ -173,36 +148,40 @@ const IngHelpDialog = React.memo(({open, strength, result, dispatch, onClose}: {
 });
 
 function getIngDetail(strength: PokemonStrength, result: StrengthResult,
-    recipeRatio: number, ingSlot: number,
-    ing: IngredientStrength[], t: typeof i18next.t): React.ReactNode {
-    if (strength.parameter.tapFrequency === 'none') {
+    recipeRatio: number,
+    ing: IngredientStrength, t: typeof i18next.t): React.ReactNode {
+    if (strength.parameter.tapFrequencyAwake === NoTap) {
         return <article>ー</article>;
     }
 
-    const count = ing.reduce((p, c) => p + c.count, 0);
-    const ingName = ing[0].name;
+    const count = ing.count;
+    const ingSlot = 1 + (result.ing2.count > 0 ? 1 : 0) +
+        (result.ing3.count > 0 ? 1 : 0);
+    const ingName = ing.name;
     const param = strength.parameter;
     const dishBonus = getEventBonus(param.event, param.customEventBonus).dish;
 
     return <>
         <span>
-            <IngredientIcon name={ing[0].name}/>
+            <IngredientIcon name={ing.name}/>
             {round1(count)}
         </span>
         <div>
             <span className="box box3">{round2(result.ingHelpCount)}</span>
             <> × </>
-            {ing.length > 1 ? '(' : ''}
-            {ing.map((ing, i) => <span key={i}>
+            {ing.slots.length > 1 ? '(' : ''}
+            {ing.slots.map((ing, i) => <span key={i}>
                 {i === 0 ? '' : ' + '}
-                <IngredientCountIcon count={ing.helpCount} name={ingName}/>
+                <IngredientCountIcon count={ing.count} name={ingName}/>
             </span>)}
-            {ing.length > 1 ? ')' : ''}
+            {ing.slots.length > 1 ? ')' : ''}
             <>{ingSlot > 1 ? ` / ${ingSlot}` : ''}</>
+            <> - </>
+            <span className="box box7">{round2(ing.overflowCount)}</span>
         </div>
         <span style={{marginTop: '-0.5rem'}}>
             <LocalFireDepartmentIcon sx={{color: "#ff944b"}} className="strength"/>
-            {formatNice(ing.reduce((p, c) => p + c.strength, 0), t)}
+            {formatNice(ing.strength, t)}
         </span>
         <div style={{marginTop: '-0.5rem'}}>
             <span className="box box1">{round1(count)}</span><> × </>

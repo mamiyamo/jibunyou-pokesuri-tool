@@ -2,10 +2,11 @@ import React from 'react';
 import { styled } from '@mui/system';
 import { PokemonData } from '../../../data/pokemons';
 import PokemonIv from '../../../util/PokemonIv';
+import { NoTap, whistlePeriod } from '../../../util/Energy';
 import { round1, round2, formatNice, formatWithComma } from '../../../util/NumberUtil';
 import PokemonStrength, {
     getRequiredHelperBoost, getHelpYield,
-    StrengthResult, whistlePeriod,
+    StrengthResult,
 } from '../../../util/PokemonStrength';
 import { StrengthParameter } from '../../../util/PokemonStrength';
 import { AmountOfSleep } from '../../../util/TimeUtil';
@@ -334,16 +335,16 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
             </footer>
         </section>
         {settings.period > whistlePeriod && <footer>
-            {result.energy.canBeFullInventory && settings.period >= 24 ? <>
-                <span>{t('full inventory while sleeping (short)')}: {result.energy.timeToFullInventory < 0 ? t('none') :
-                        new AmountOfSleep(result.energy.timeToFullInventory).toString(t)}</span>
+            {result.energy.showSkillStock && settings.period >= 24 ? <>
+                <span>{t('full inventory while sleeping (short)')}: {result.timeToFullInventory < 0 ? t('none') :
+                        new AmountOfSleep(result.timeToFullInventory).toString(t)}</span>
                 <span>
                     {t('skill trigger after wake up (short)')}<>: </>
                     {pokemonIv.pokemon.specialty !== "Skills" && pokemonIv.pokemon.specialty !== "All" ?
-                    round1(result.energy.skillProbabilityAfterWakeup.once * 100) + '%' :
+                    round1(result.skillProbabilityAfterWakeup.once * 100) + '%' :
                     <>
-                        ❶{round1(result.energy.skillProbabilityAfterWakeup.once * 100)}%<> </>
-                        ❷{round1(result.energy.skillProbabilityAfterWakeup.twice * 100)}%
+                        ❶{round1(result.skillProbabilityAfterWakeup.once * 100)}%<> </>
+                        ❷{round1(result.skillProbabilityAfterWakeup.twice * 100)}%
                     </>}
                 </span>
             </> :
@@ -377,13 +378,13 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
             </div>
         }
         <BerryHelpDialog open={berryHelpOpen} onClose={onBerryHelpClose}
-            strength={strength} result={result}/>
+            dispatch={dispatch} strength={strength} result={result}/>
         <IngHelpDialog open={ingHelpOpen} onClose={onIngHelpClose}
             dispatch={dispatch} strength={strength} result={result}/>
         <SkillHelpDialog open={skillHelpOpen} onClose={onSkillHelpClose}
             dispatch={dispatch} strength={strength} result={result}/>
         <EnergyDialog open={energyDialogOpen} onClose={onEfficiencyDialogClose}
-            iv={pokemonIv} energy={result.energy} parameter={settings} dispatch={dispatch}/>
+            iv={pokemonIv} result={result} parameter={settings} dispatch={dispatch}/>
         <HelpStackDialog open={helpStockDialogOpen} onClose={onHelpStockDialogClose}
             parameter={settings} strength={strength} result={result} dispatch={dispatch}/>
     </StyledBerryIngSkillStrengthView>;
@@ -391,7 +392,7 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
 
 function getIngArticle(result: StrengthResult, settings: StrengthParameter,
     t: typeof i18next.t): React.ReactNode {
-    if (settings.period !== whistlePeriod && settings.tapFrequency === 'none') {
+    if (settings.period !== whistlePeriod && settings.tapFrequencyAwake === NoTap) {
         return <article>ー</article>;
     }
 
@@ -413,7 +414,7 @@ function getIngArticle(result: StrengthResult, settings: StrengthParameter,
 function getMainSkillArticle(pokemonIv: PokemonIv, result: StrengthResult,
     settings: StrengthParameter, t: typeof i18next.t
 ): React.ReactNode {
-    if (settings.period <= whistlePeriod || settings.tapFrequency === 'none') {
+    if (settings.period <= whistlePeriod || settings.tapFrequencyAwake === NoTap) {
             return <article>ー</article>;
     }
 
@@ -676,6 +677,7 @@ export const StyledInfoDialog = styled(Dialog)({
     '& span.box4': { background: '#ce5052' },
     '& span.box5': { background: '#ce3fa3' },
     '& span.box6': { background: '#ff8822' },
+    '& span.box7': { background: '#5c6aff' },
 });
 
 export default StrengthBerryIngSkillStrengthView;

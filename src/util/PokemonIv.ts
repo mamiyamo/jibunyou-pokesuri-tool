@@ -11,16 +11,26 @@ import {
     expertMainBerrySpeedBonus, expertNonFavoriteBerrySpeedPenalty,
 } from './PokemonStrength';
 
+/**
+ * Represents the slot of ingredient.
+ */
+export interface IngredientSlot {
+    /** Ingredient name. */
+    name: IngredientName;
+    /** Ingredient count by single help (0 if locked) */
+    count: number;
+    /** Slot index (ing1 -> 0, ing2 -> 1, ing3 -> 2) */
+    index: number;
+}
+
 /** Bonus that affect inventory consumption */
 export interface InventoryBonus {
     /** Berry count bonus from events (0 or 1) */
-    berry: 0|1;
+    berryBonus: 0|1;
     /** Ingredient count bonus from events (0 or 1) */
-    ingredient: 0|1;
-    /** Carry limit bonus (add) */
-    carryLimitAdd: 0|8|15;
-    /** Carry limit bonus (multiply) */
-    carryLimitMul: 1|1.5;
+    ingredientBonus: 0|1;
+    /** Carry limit bonus */
+    carryLimitBonus: 0|8|15;
     /**
      * Whether expert mode ingredient bonus applies.
      * True if following condition are all met.
@@ -28,7 +38,7 @@ export interface InventoryBonus {
      * - ExpertEffects is `ing`
      * - Favorite berry
      */
-    expertIng: boolean;
+    expertIngBonus: boolean;
 }
 
 /**
@@ -209,48 +219,6 @@ class PokemonIv {
             (1 - Math.pow(1 - rate, this.pityProcHelpCount + 1));
     }
 
-    /**
-     * Get the number of helps before the skill pity ceiling triggers.
-     *
-     * The ceiling is stored in pokemon data and defaults to 78.
-     */
-    get skillPityCeiling(): number {
-        return this.getOrCache('skillPityCeiling', () => {
-            if (this.pokemon.skillPityCeiling !== undefined) {
-                return this.pokemon.skillPityCeiling;
-            }
-            return 78;
-        });
-    }
-
-    /**
-     * Get the skill trigger rate adjusted by the pity ceiling.
-     *
-     * @param skillTriggerBonus Optional multiplier applied before pity.
-     * @param usePity Whether to apply the pity ceiling adjustment.
-     * @returns Ceiling-adjusted skill trigger probability.
-     */
-    getSkillRateWithPity(skillTriggerBonus: number = 1, usePity: boolean = false): number {
-        return this.getOrCache(`skillRateWithPity:${skillTriggerBonus}:${usePity}`, () => {
-            const rate = this.skillRate * skillTriggerBonus;
-            if (rate <= 0) {
-                return 0;
-            }
-
-            if (!usePity) {
-                return rate;
-            }
-
-            const ceiling = this.skillPityCeiling;
-            if (ceiling <= 0) {
-                return rate;
-            }
-
-            const missRate = Math.pow(1 - rate, ceiling);
-            return rate / (1 - missRate);
-        });
-    }
-
     get ingredientRate(): number {
         return this.getOrCache('ingredientRate', () => {
             return trunc(
@@ -368,38 +336,42 @@ class PokemonIv {
         return ret;
     }
 
-    get ingredient1() {
+    get ingredient1(): IngredientSlot {
         if (this.pokemon.mythIng !== undefined) {
             return {
                 name: this.mythIng1 ?? "unknown",
                 count: this.pokemon.mythIng.find(x => x.name === this.mythIng1)?.c1 ?? 0,
+                index: 0,
             };
         }
 
         return {
             name: this.pokemon.ing1.name ?? "unknown",
             count: this.pokemon.ing1.c1,
+            index: 0,
         };
     }
 
-    get ingredient2() {
+    get ingredient2(): IngredientSlot {
         if (this.pokemon.mythIng !== undefined) {
             return {
                 name: this.mythIng2 ?? "unknown",
                 count: this.pokemon.mythIng.find(x => x.name === this.mythIng2)?.c2 ?? 0,
+                index: 1,
             };
         }
 
         const ing2 = this.ingredient.charAt(1) === 'A' ?
             this.pokemon.ing1 : this.pokemon.ing2;
-        return { name: ing2.name, count: ing2.c2 };
+        return { name: ing2.name, count: ing2.c2, index: 1 };
     }
 
-    get ingredient3() {
+    get ingredient3(): IngredientSlot {
         if (this.pokemon.mythIng !== undefined) {
             return {
                 name: this.mythIng3 ?? "unknown",
                 count: this.pokemon.mythIng.find(x => x.name === this.mythIng3)?.c3 ?? 0,
+                index: 2,
             };
         }
 
@@ -407,7 +379,7 @@ class PokemonIv {
             this.ingredient.charAt(2) === 'B' ?
             this.pokemon.ing2 : this.pokemon.ing3;
         if (ing3 === undefined) { throw new Error("this pokemon doesn't have 3rd ing"); }
-        return { name: ing3.name, count: ing3.c3 };
+        return { name: ing3.name, count: ing3.c3, index: 2 };
     }
 
     /**
@@ -433,7 +405,7 @@ class PokemonIv {
      * Calculate the detail bag usage (inventory slots used) per help action.
      *
      * @param bonus Bonus that affect inventory consumption.
-     * @returns Usage count and its probability.
+     * @returns Usage name, count and its probability.
      */
     getBagUsagePerHelpDetail(bonus?: Partial<InventoryBonus>): BagUsagePerHelpDetailItem[] {
         const ret: BagUsagePerHelpDetailItem[] = [];
@@ -448,9 +420,9 @@ class PokemonIv {
         };
 
         // Fill bonus
-        const berryBonus = bonus?.berry ?? 0;
-        const ingredientBonus = bonus?.ingredient ?? 0;
-        const expertIngBonus = bonus?.expertIng ?? false;
+        const berryBonus = bonus?.berryBonus ?? 0;
+        const ingredientBonus = bonus?.ingredientBonus ?? 0;
+        const expertIngBonus = bonus?.expertIngBonus ?? false;
 
         // Calculate ing bonus
         const ingRate = this.ingredientRate;
@@ -467,8 +439,8 @@ class PokemonIv {
         ret.push({
             name: this.ingredient1.name,
             count: this.ingredient1.count + ingBonus,
-            ingSlotIndex: 0,
             ingKindIndex: getIngKindIndex(this.ingredient1.name),
+            ingSlotIndex: 0,
             p: 0,
         });
 
@@ -479,8 +451,8 @@ class PokemonIv {
                 ret.push({
                     name: this.ingredient2.name,
                     count: ing2.count + ingBonus,
-                    ingSlotIndex: 1,
                     ingKindIndex: getIngKindIndex(this.ingredient2.name),
+                    ingSlotIndex: 1,
                     p: 0,
                 });
             }
@@ -493,8 +465,8 @@ class PokemonIv {
                 ret.push({
                     name: this.ingredient3.name,
                     count: ing3.count + ingBonus,
-                    ingSlotIndex: 2,
                     ingKindIndex: getIngKindIndex(this.ingredient3.name),
+                    ingSlotIndex: 2,
                     p: 0,
                 });
             }
@@ -507,13 +479,8 @@ class PokemonIv {
                 throw new Error('expert bonus changed');
             }
             for (let i = 0; i < ings; i++) {
-                ret.push({
-                    name: ret[i].name,
-                    count: ret[i].count + 1,
-                    p: 0,
-                    ingSlotIndex: ret[i].ingSlotIndex,
-                    ingKindIndex: ret[i].ingKindIndex,
-                });
+                ret.push({name: ret[i].name, count: ret[i].count + 1, p: 0,
+                    ingSlotIndex: ret[i].ingSlotIndex, ingKindIndex: ret[i].ingKindIndex});
             }
         }
 

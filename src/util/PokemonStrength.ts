@@ -1,12 +1,15 @@
 import pokemons from '../data/pokemons';
 import { BonusEffects, emptyBonusEffects, getEventBonus, getEventBonusIfTarget } from '../data/events';
-import { IngredientName, PokemonType, PokemonTypes
-} from '../data/pokemons';
+import { PokemonType, PokemonTypes } from '../data/pokemons';
 import fields, { isExpertField, getFavoriteBerries } from '../data/fields';
 import events, { loadHelpEventBonus } from '../data/events';
-import Energy, { EnergyParameter, EnergyResult } from './Energy';
+import Energy, {
+    EnergyParameter, EnergyResult, AlwaysTap, NoTap, isValidTapFrequency,
+    whistlePeriod,
+} from './Energy';
 import { MainSkillName } from './MainSkill';
-import PokemonIv from './PokemonIv';
+import { calculateHelpCount, HelpCountResult, IngredientHelp } from './HelpCount';
+import PokemonIv, { IngredientSlot } from './PokemonIv';
 import PokemonRp, {
     averageIngredientStrength, ingredientStrength,
  } from './PokemonRp';
@@ -23,8 +26,6 @@ export const allFavoriteFieldIndex = -2;
 /** Pseudo field index where no berries are favorites */
 export const noFavoriteFieldIndex = -1;
 
-/** Represents the period value for "whistle" calculations in StrengthParameter. */
-export const whistlePeriod = 0;
 
 /** Expert mode effects */
 export type ExpertEffects = "berry"|"ing"|"skill";
@@ -162,14 +163,9 @@ export interface MewParameter {
 
 /**
  * Respresents the result of ingredient strength calculation.
+ * IngredientHelp with strength.
  */
-export interface IngredientStrength {
-    /** Ingredient name. */
-    name: IngredientName;
-    /** Ingredient count. */
-    count: number;
-    /** Ingredient count by single help */
-    helpCount: number;
+export type IngredientStrength = IngredientHelp & {
     /** Ingredient strength. */
     strength: number;
 }
@@ -177,7 +173,7 @@ export interface IngredientStrength {
 /**
  * Represents the result of strength calculation.
  */
-export interface StrengthResult {
+export interface StrengthResult extends Omit<HelpCountResult, 'ing1' | 'ing2' | 'ing3' | 'ingredients'> {
     /** The bonus effect that was used to calculate this result */
     bonus: BonusEffectsWithReason;
     /** energy and help count */
@@ -190,17 +186,6 @@ export interface StrengthResult {
      */
     helpingBonusStrength: number;
 
-    /** Normal help count (not sneaky snacking) */
-    notFullHelpCount: number;
-    /** Sneaky snacking help count */
-    fullHelpCount: number;
-
-    /** Berry rate */
-    berryRate: number;
-    /** Berry help count */
-    berryHelpCount: number;
-    /** Berry count per help */
-    berryCount: number;
     /** Strength per 1 berry (area bonus not included) */
     berryRawStrength: number;
     /** Strength per 1 berry (area bonus included) */
@@ -208,25 +193,16 @@ export interface StrengthResult {
     /** Total strength gained by berry */
     berryTotalStrength: number;
 
-    /** Ingredient rate */
-    ingRate: number;
-    /** Ingredient help count */
-    ingHelpCount: number;
     /** Ingredient strength */
     ingStrength: number;
     /** Ing1 name and count */
-    ing1: IngredientStrength;
+    ing1: IngredientSlot;
     /** Ing2 name and count */
-    ing2: IngredientStrength;
+    ing2: IngredientSlot;
     /** Ing3 name and count */
-    ing3: IngredientStrength|undefined;
+    ing3: IngredientSlot;
     /** Ing1 ~ Ing3 name, count, strength summary */
     ingredients: IngredientStrength[];
-
-    /** Skill rate */
-    skillRate: number;
-    /** Total skill count */
-    skillCount: number;
     /**
      * Skill value got from the skillCount skill occurance
      * If the skill is 'Dream Shard Magnet S', this value represents the number of Dream Shards.
@@ -315,8 +291,8 @@ class PokemonStrength {
                 period: 3,
                 isEnergyAlwaysFull: true,
                 isGoodCampTicketSet: false,
-                tapFrequency: 'always',
-                tapFrequencyAsleep: 'always',
+                tapFrequencyAwake: AlwaysTap,
+                tapFrequencyAsleep: AlwaysTap,
             };
         }
 
@@ -385,102 +361,39 @@ class PokemonStrength {
     calculate(): StrengthResult {
         const param = this.param;
         const rp = new PokemonRp(this.iv);
-        const level = this.iv.level;
-        const countRate = Math.ceil(param.period / 24);
         const bonus = this.bonusEffects;
-        const energy = new Energy(this.iv).calculate(param, bonus, this.isWhistle);
-        const notFullHelpCount = param.period < 0 ? -param.period :
-            param.tapFrequency === 'none' ? 0 :
-            (energy.helpCount.awake + energy.helpCount.asleepNotFull) * countRate;
-        const fullHelpCount = param.period < 0 ? 0 :
-            param.tapFrequency === 'none' ?
-            (energy.helpCount.awake + energy.helpCount.asleepNotFull + energy.helpCount.asleepFull) * countRate :
-            energy.helpCount.asleepFull * countRate;
+        const energy = new Energy(this.iv).calculate(param, bonus);
+        const helpCount: HelpCountResult = calculateHelpCount(this.iv, param,
+            energy, bonus, this.isWhistle);
 
         // calc ingredient
         const ingInRecipeStrengthRate = param.recipeBonus === 0 ? 1 :
             (1 + param.recipeBonus / 100) * (1 + recipeLevelBonus[param.recipeLevel] / 100);
         const ingStrengthRate = (ingInRecipeStrengthRate * 0.8 + 0.2) *
             (1 + param.fieldBonus / 100) * bonus.dish;
-        const ingRate = rp.iv.ingredientRate;
-        const ingHelpCount = notFullHelpCount * ingRate;
-        const ingUnlock = 1 +
-            (level >= 30 && rp.iv.ingredient2.count > 0 ? 1 : 0) +
-            (level >= 60 && rp.iv.ingredient3.count > 0 ? 1 : 0);
-        const ingEventAdd: number = (param.period !== whistlePeriod ? bonus.ingredient : 0);
 
-        const ing1: IngredientStrength = {...rp.iv.ingredient1, strength: 0,
-            helpCount: rp.iv.ingredient1.count + ingEventAdd};
-        ing1.count = ingHelpCount * (1 / ingUnlock) * ing1.helpCount;
-        ing1.strength = ingredientStrength[ing1.name] * ing1.count * ingStrengthRate;
-
-        const ing2 = {...rp.iv.ingredient2, strength: 0,
-            helpCount: rp.iv.ingredient2.count + ingEventAdd};
-        ing2.count = level < 30 || ing2.count === 0 ? 0 :
-            ingHelpCount * (1 / ingUnlock) * ing2.helpCount;
-            ing2.strength = ingredientStrength[ing2.name] * ing2.count * ingStrengthRate;
-        let ing3 = undefined;
-        ing3 = {...rp.iv.ingredient3, strength: 0,
-            helpCount: rp.iv.ingredient3.count + ingEventAdd};
-        ing3.count = level < 60 || ing3.count === 0 ? 0 :
-            ingHelpCount * (1 / ingUnlock) * ing3.helpCount;
-        ing3.strength = ingredientStrength[ing3.name] * ing3.count * ingStrengthRate;
-        const ingStrength = ing1.strength + ing2.strength + ing3.strength;
-
-        const ing: {[name: string]: IngredientStrength} = {};
-        const ingNames: IngredientName[] = [];
-        ing[ing1.name] = {...ing1};
-        ingNames.push(ing1.name);
-        if (ing2.count > 0) {
-            if (!(ing2.name in ing)) {
-                ing[ing2.name] = {name: ing2.name, count: 0, helpCount: 0, strength: 0};
-                ingNames.push(ing2.name);
-            }
-            ing[ing2.name].count += ing2.count;
-            ing[ing2.name].helpCount += ing2.helpCount;
-            ing[ing2.name].strength += ing2.strength;
-        }
-        if (ing3 !== undefined && ing3.count > 0) {
-            if (!(ing3.name in ing)) {
-                ing[ing3.name] = {name: ing3.name, count: 0, helpCount: 0, strength: 0};
-                ingNames.push(ing3.name);
-            }
-            ing[ing3.name].count += ing3.count;
-            ing[ing3.name].helpCount += ing3.helpCount;
-            ing[ing3.name].strength += ing3.strength;
-        }
-        const ingredients = ingNames.map(x => ing[x]);
+        const ingredients = helpCount.ingredients.map(x => ({
+            ...x,
+            strength: x.count * ingredientStrength[x.name] * ingStrengthRate,
+        }));
+        const ingStrength = ingredients.reduce((p, c) => p + c.strength, 0);
 
         // calc berry
-        const berryRate = this.iv.berryRate;
-        const berryHelpCount = (notFullHelpCount + fullHelpCount) - ingHelpCount;
-        const berryCount = rp.iv.berryCount;
-        const berryCountWithBonus = rp.iv.berryCount + bonus.berry;
+        const berryCountWithBonus = this.iv.berryCount + bonus.berry;
         const berryRawStrength = rp.berryStrength;
         const berryStrength = Math.ceil(berryRawStrength * (1 + param.fieldBonus / 100));
         const berryStrengthWithBonus = Math.ceil(berryStrength * this.berryStrengthBonus);
         const berryTotalStrength =
-            berryStrengthWithBonus * berryCountWithBonus * (notFullHelpCount * (1 - ingRate)) +  +
-            berryStrengthWithBonus * berryCount * fullHelpCount;
+            berryStrengthWithBonus * berryCountWithBonus * helpCount.berryNormalHelpCount +
+            berryStrengthWithBonus * this.iv.berryCount * helpCount.total.sneakySnacking;
 
         // calc skill
-        const skillRate = energy.skillRate;
-        let skillCount = 0, skillValue = 0, skillStrength = 0, skillValuePerTrigger = 0;
+        let skillValue = 0, skillStrength = 0, skillValuePerTrigger = 0;
         let skillValue2 = 0, skillStrength2 = 0, skillValuePerTrigger2 = 0;
-        if (param.period > 0 && !this.isWhistle && param.tapFrequency !== 'none') {
-            if (param.tapFrequencyAsleep === 'always') {
-                const helpCount = energy.helpCount.awake + energy.helpCount.asleepNotFull;
-                skillCount = helpCount * skillRate * countRate;
-            }
-            else {
-                const skillCountAwake = energy.helpCount.awake * skillRate;
-                const skillCountSleeping = energy.skillProbabilityAfterWakeup.once +
-                    energy.skillProbabilityAfterWakeup.twice * 2;
-                skillCount = (skillCountAwake + skillCountSleeping) * countRate;
-            }
+        if (helpCount.skillCount > 0) {
             ({skillValue, skillStrength, skillValuePerTrigger,
                 skillValue2, skillStrength2, skillValuePerTrigger2} =
-                this.getSkillValueAndStrength(skillCount, param, bonus));
+                this.getSkillValueAndStrength(helpCount.skillCount, param, bonus));
         }
 
         let totalStrength = (param.totalFlags[1] ? ingStrength : 0) +
@@ -501,10 +414,11 @@ class PokemonStrength {
         }
 
         return {
-            bonus, energy, totalStrength, helpingBonusStrength, notFullHelpCount, fullHelpCount,
-            ingRate, ingHelpCount, ingStrength, ing1, ing2, ing3, ingredients,
-            berryRate, berryHelpCount, berryCount, berryStrength, berryRawStrength, berryTotalStrength,
-            skillRate, skillCount, skillValue, skillStrength, skillValuePerTrigger,
+            ...helpCount,
+            bonus, energy, totalStrength, helpingBonusStrength,
+            ingStrength, ingredients,
+            berryStrength, berryRawStrength, berryTotalStrength,
+            skillValue, skillStrength, skillValuePerTrigger,
             skillValue2, skillStrength2, skillValuePerTrigger2,
         };
     }
@@ -1064,10 +978,11 @@ export function createStrengthParameter(
         level: 0,
         evolved: false,
         maxSkillLevel: false,
+        pityProc: true,
         totalFlags: [true, true, true],
         addHelpingBonusEffect: true,
-        tapFrequency: "always",
-        tapFrequencyAsleep: "none",
+        tapFrequencyAwake: 180,
+        tapFrequencyAsleep: NoTap,
         recipeBonus: 25,
         recipeLevel: 30,
         helperBoostLevel: 6,
@@ -1268,7 +1183,7 @@ export function getHelpsForCap(strength: PokemonStrength,
     // Bonus is always empty because we calculate based on regular help
     const rp = new PokemonRp(strength.pokemonIv);
     const bagUsagePerHelp = rp.iv.getBagUsagePerHelp();
-    return (999 - result.energy.carryLimit) / bagUsagePerHelp;
+    return (999 - result.carryLimit) / bagUsagePerHelp;
 }
 
 /**
@@ -1349,6 +1264,9 @@ export function loadStrengthParameter(): StrengthParameter {
     if (typeof(json.maxSkillLevel) === "boolean") {
         ret.maxSkillLevel = json.maxSkillLevel;
     }
+    if (typeof(json.pityProc) === "boolean") {
+        ret.pityProc = json.pityProc;
+    }
     if (Array.isArray(json.totalFlags) && json.totalFlags.length === 3 &&
         json.totalFlags.every((x: unknown) => typeof(x) === "boolean")
     ) {
@@ -1379,13 +1297,23 @@ export function loadStrengthParameter(): StrengthParameter {
         0 <= json.sleepScore && json.sleepScore <= 100) {
         ret.sleepScore = json.sleepScore;
     }
-    if (typeof(json.tapFrequency) === "string" &&
-        ["always", "none"].includes(json.tapFrequency)) {
-        ret.tapFrequency = json.tapFrequency;
+    // Migrate tapFrequencyAwake (with backward compatibility)
+    if (isValidTapFrequency(json.tapFrequencyAwake)) {
+        ret.tapFrequencyAwake = json.tapFrequencyAwake;
+    } else if (json.tapFrequency === "none") {
+        ret.tapFrequencyAwake = NoTap;
+    } else {
+        ret.tapFrequencyAwake = 180;  // Default to 3h
     }
-    if (typeof(json.tapFrequencyAsleep) === "string" &&
-        ["always", "none"].includes(json.tapFrequencyAsleep)) {
+    // Migrate tapFrequencyAsleep (with backward compatibility)
+    if (isValidTapFrequency(json.tapFrequencyAsleep)) {
         ret.tapFrequencyAsleep = json.tapFrequencyAsleep;
+    } else if (json.tapFrequencyAsleep === "always") {
+        ret.tapFrequencyAsleep = AlwaysTap;
+    } else if (json.tapFrequencyAsleep === "none") {
+        ret.tapFrequencyAsleep = NoTap;
+    } else {
+        ret.tapFrequencyAsleep = NoTap;
     }
     if (typeof(json.recipeBonus) === "number" &&
         [0, 6, 11, 17, 19, 20, 25, 35, 48, 61, 78].includes(json.recipeBonus)) {

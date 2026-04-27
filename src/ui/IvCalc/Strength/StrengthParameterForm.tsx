@@ -11,10 +11,13 @@ import InfoButton from '../InfoButton';
 import PeriodSelect from './PeriodSelect';
 import EventConfigDialog from './EventConfigDialog';
 import FixedLevelSelect from './FixedLevelSelect';
+import TapFrequencyControl from './TapFrequencyControl';
 import { LevelInput } from '../IvForm/LevelControl';
+import MessageDialog from '../../Dialog/MessageDialog';
 import { getActiveHelpBonus } from '../../../data/events';
+import { NoTap, whistlePeriod } from '../../../util/Energy';
 import {
-    createStrengthParameter, StrengthParameter, whistlePeriod,
+    createStrengthParameter, StrengthParameter,
 } from '../../../util/PokemonStrength';
 import { useTranslation, Trans } from 'react-i18next';
 
@@ -58,10 +61,17 @@ const StrengthSettingForm = React.memo(({dispatch, value, hasHelpingBonus}: {
     hasHelpingBonus: boolean,
 }) => {
     const { t } = useTranslation();
+    const [pityProcHelpOpen, setPityProcHelpOpen] = React.useState(false);
     const [recipeBonusHelpOpen, setRecipeBonusHelpOpen] = React.useState(false);
     const [eventDetailOpen, setEventDetailOpen] = React.useState(false);
     const [initializeConfirmOpen, setInitializeConfirmOpen] = React.useState(false);
 
+    const onPityProcHelpClick = React.useCallback(() => {
+        setPityProcHelpOpen(true);
+    }, []);
+    const onPityProcHelpClose = React.useCallback(() => {
+        setPityProcHelpOpen(false);
+    }, []);
     const onRecipeBonusInfoClick = React.useCallback(() => {
         setRecipeBonusHelpOpen(true);
     }, []);
@@ -82,6 +92,9 @@ const StrengthSettingForm = React.memo(({dispatch, value, hasHelpingBonus}: {
     const onMaxSkillLevelChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         onChange({...value, maxSkillLevel: e.target.checked});
     }, [onChange, value]);
+    const onPityProcChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange({...value, pityProc: e.target.checked});
+    }, [onChange, value]);
     const onEventChange = React.useCallback((_: React.MouseEvent, val: string|null) => {
         if (val === null) {
             return;
@@ -97,11 +110,11 @@ const StrengthSettingForm = React.memo(({dispatch, value, hasHelpingBonus}: {
     const onEventDetailClose = React.useCallback(() => {
         setEventDetailOpen(false);
     }, []);
-    const onTapFrequencyChange = React.useCallback((e: SelectChangeEvent) => {
-        onChange({...value, tapFrequency: e.target.value as "always"|"none"});
+    const onTapFrequencyAwakeChange = React.useCallback((tapFrequencyAwake: number) => {
+        onChange({...value, tapFrequencyAwake});
     }, [onChange, value]);
-    const onTapFrequencyAsleepChange = React.useCallback((e: SelectChangeEvent) => {
-        onChange({...value, tapFrequencyAsleep: e.target.value as "always"|"none"});
+    const onTapFrequencyAsleepChange = React.useCallback((tapFrequencyAsleep: number) => {
+        onChange({...value, tapFrequencyAsleep});
     }, [onChange, value]);
     const onEditEnergyClick = React.useCallback(() => {
         dispatch({type: 'openEnergyDialog'});
@@ -167,6 +180,10 @@ const StrengthSettingForm = React.memo(({dispatch, value, hasHelpingBonus}: {
             <label>{t('calc with max skill level')}:</label>
             <Switch checked={value.maxSkillLevel} onChange={onMaxSkillLevelChange}/>
         </section>
+        <section>
+            <label>{t('include pity proc')}:<InfoButton onClick={onPityProcHelpClick}/></label>
+            <Switch checked={value.pityProc} onChange={onPityProcChange}/>
+        </section>
         <section className="mt">
             <label>{t('helping bonus')}:</label>
             <Select variant="standard" value={value.helpBonusCount.toString()}
@@ -181,21 +198,16 @@ const StrengthSettingForm = React.memo(({dispatch, value, hasHelpingBonus}: {
         <Collapse in={isNotWhistle}>
             <section>
                 <label>{t('tap frequency')} ({t('awake')}):</label>
-                <Select variant="standard" value={value.tapFrequency}
-                    onChange={onTapFrequencyChange}>
-                    <MenuItem value="always">{t('every minute')}</MenuItem>
-                    <MenuItem value="none">{t('none')}</MenuItem>
-                </Select>
+                <TapFrequencyControl max={10} value={value.tapFrequencyAwake}
+                    onChange={onTapFrequencyAwakeChange}/>
             </section>
             <section>
                 <label>{t('tap frequency')} ({t('asleep')}):</label>
-                {value.tapFrequency === "none" ?
+                {value.tapFrequencyAwake === NoTap ?
                     <span style={{fontSize: '0.9rem'}}>{t('none')}</span> :
-                    <Select variant="standard" value={value.tapFrequencyAsleep}
-                        onChange={onTapFrequencyAsleepChange}>
-                        <MenuItem value="always">{t('every minute')}</MenuItem>
-                        <MenuItem value="none">{t('none')}</MenuItem>
-                    </Select>}
+                    <TapFrequencyControl max={8} value={value.tapFrequencyAsleep}
+                        onChange={onTapFrequencyAsleepChange}/>
+                }
             </section>
             <section className="mt">
                 <label>{t('energy')}:</label>
@@ -230,6 +242,11 @@ const StrengthSettingForm = React.memo(({dispatch, value, hasHelpingBonus}: {
         <InitializeConfirmDialog open={initializeConfirmOpen} onClose={onInitializeConfirmClose}
             dispatch={dispatch}/>
         <RecipeBonusHelpDialog open={recipeBonusHelpOpen} onClose={onRecipeBonusHelpClose}/>
+        <MessageDialog open={pityProcHelpOpen} onClose={onPityProcHelpClose}
+            message={<>
+                <p>{t('pity proc help')}</p>
+                <p>{t('pity proc help2')}</p>
+            </>}/>
         <EventConfigDialog open={eventDetailOpen} onClose={onEventDetailClose}
             value={value} onChange={onChange}/>
     </StyledSettingForm>;

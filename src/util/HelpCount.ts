@@ -141,9 +141,6 @@ export function calculateHelpCount(
     // Initialize return value
     const ret: HelpCountResult = initializeHelpCountResult(
         iv, param, energy, bonus, isWhistle);
-    if (ret.baseFreq <= 0) {
-        return ret;
-    }
 
     // Awake helps
     const simulation = new HelpCountSimulation(iv, param.isGoodCampTicketSet,
@@ -164,8 +161,6 @@ export function calculateHelpCount(
     // multiply count rate
     if (countRate > 1) {
         ret.berryHelpCount *= countRate;
-        ret.berryNormalHelpCount *= countRate;
-        ret.berrySneakySnackingCount *= countRate;
         ret.ingHelpCount *= countRate;
         ret.ingredients.forEach(x => x.count *= countRate);
         ret.skillCount *= countRate;
@@ -192,8 +187,7 @@ function initializeHelpCountResult(
 ): HelpCountResult {
     const {baseFreq, inventoryBonus} = calculateBaseFreqAndBonus(iv, param,
         bonus, isWhistle);
-    const carryLimit = Math.ceil((iv.carryLimit + bonus.carryLimitAdd) *
-        (bonus.carryLimitMul ?? 1) *
+    const carryLimit = Math.ceil((iv.carryLimit + bonus.carryLimit) *
         (param.isGoodCampTicketSet ? 1.2 : 1));
 
     const level = iv.level;
@@ -325,11 +319,10 @@ function calculateBaseFreqAndBonus(
     const baseFreq = iv.getBaseFrequency(helpBonusCount,
         param.isGoodCampTicketSet, isMainBerry, isNonFavoriteBerry);
     const inventoryBonus = {
-        berry: bonus.berry,
-        ingredient: bonus.ingredient,
-        carryLimitAdd: bonus.carryLimitAdd,
-        carryLimitMul: bonus.carryLimitMul,
-        expertIng: isFavoriteBerry && param.expertEffect === "ing",
+        berryBonus: bonus.berry,
+        ingredientBonus: bonus.ingredient,
+        carryLimitBonus: bonus.carryLimit,
+        expertIngBonus: isFavoriteBerry && param.expertEffect === "ing",
     };
     return { baseFreq, inventoryBonus };
 }
@@ -828,8 +821,7 @@ export class HelpCountSimulation {
     ) {
         // calculate carryLimit and M
         this.carryLimit = Math.ceil(
-            (iv.carryLimit + (bonus?.carryLimitAdd ?? 0)) *
-            (bonus?.carryLimitMul ?? 1) *
+            (iv.carryLimit + (bonus?.carryLimitBonus ?? 0)) *
             (isGoodCampTicketSet ? 1.2 : 1)
         );
         this.M = this.carryLimit + 1;
@@ -1075,10 +1067,7 @@ export class HelpCountSimulation {
                 skillOnce += probNormalN * (1 - skillNoneN);
             }
         }
-        return {
-            skillOnce,
-            skillTwice: Math.abs(skillTwice) < 1e-12 ? 0 : Math.max(0, skillTwice),
-        };
+        return { skillOnce, skillTwice: Math.max(0, skillTwice) };
     }
 
     /**

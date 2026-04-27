@@ -2,19 +2,20 @@ import React from 'react';
 import { styled } from '@mui/system';
 import { IvAction } from '../IvState';
 import { useElementWidth } from '../../common/Hook';
+import TapFrequencyControl from '../Strength/TapFrequencyControl';
 import PokemonIv from '../../../util/PokemonIv';
-import { StrengthParameter } from '../../../util/PokemonStrength';
+import { StrengthParameter, StrengthResult } from '../../../util/PokemonStrength';
 import { AmountOfSleep } from '../../../util/TimeUtil';
 import { EnergyChart } from '../Chart/EnergyChart';
-import { EnergyResult } from '../../../util/Energy';
+import { NoTap } from '../../../util/Energy';
 import { clamp } from '../../../util/NumberUtil';
 import { Collapse, MenuItem,
     Select, SelectChangeEvent, Switch, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
-const EnergyPanel = React.memo(({iv, energy, parameter, dispatch}: {
+const EnergyPanel = React.memo(({iv, result, parameter, dispatch}: {
     iv: PokemonIv,
-    energy: EnergyResult,
+    result: StrengthResult,
     parameter: StrengthParameter,
     dispatch: React.Dispatch<IvAction>,
 }) => {
@@ -64,16 +65,14 @@ const EnergyPanel = React.memo(({iv, energy, parameter, dispatch}: {
             isGoodCampTicketSet: e.target.checked,
         }}});
     }, [dispatch, parameter]);
-    const onTapFrequencyChange = React.useCallback((e: SelectChangeEvent) => {
+    const onTapFrequencyAwakeChange = React.useCallback((tapFrequencyAwake: number) => {
         dispatch({type: "changeParameter", payload: { parameter: {
-            ...parameter,
-            tapFrequency: e.target.value as "always"|"none",
+            ...parameter, tapFrequencyAwake,
         }}});
     }, [dispatch, parameter]);
-    const onTapFrequencyAsleepChange = React.useCallback((e: SelectChangeEvent) => {
+    const onTapFrequencyAsleepChange = React.useCallback((tapFrequencyAsleep: number) => {
         dispatch({type: "changeParameter", payload: { parameter: {
-            ...parameter,
-            tapFrequencyAsleep: e.target.value as "always"|"none",
+            ...parameter, tapFrequencyAsleep,
         }}});
     }, [dispatch, parameter]);
 
@@ -82,11 +81,13 @@ const EnergyPanel = React.memo(({iv, energy, parameter, dispatch}: {
     }
 
     const hasRecoveryBonus = iv.hasEnergyRecoveryBonusInActiveSubSkills;
-    const carryLimit = energy.carryLimit;
+    const energy = result.energy;
+    const carryLimit = result.carryLimit;
 
     return <StyledEnergyPanel>
-            <EnergyChart
-                width={width} period={parameter.period} result={energy}/>        <Collapse in={!parameter.isEnergyAlwaysFull}>
+        <EnergyChart
+            width={width} period={parameter.period} result={energy}/>
+        <Collapse in={!parameter.isEnergyAlwaysFull}>
             <section ref={dialogRef}>
                 <div>
                     <label>{t('skills.Energy for Everyone S.name')}:</label>
@@ -161,21 +162,16 @@ const EnergyPanel = React.memo(({iv, energy, parameter, dispatch}: {
         <section>
             <div>
                 <label>{t('tap frequency')} ({t('awake')}):</label>
-                <Select variant="standard" value={parameter.tapFrequency}
-                    onChange={onTapFrequencyChange}>
-                    <MenuItem value="always">{t('every minute')}</MenuItem>
-                    <MenuItem value="none">{t('none')}</MenuItem>
-                </Select>
+                <TapFrequencyControl max={10} value={parameter.tapFrequencyAwake}
+                    onChange={onTapFrequencyAwakeChange}/>
             </div>
             <div>
                 <label>{t('tap frequency')} ({t('asleep')}):</label>
-                {parameter.tapFrequency === "none" ?
+                {parameter.tapFrequencyAwake === NoTap ?
                     <span style={{fontSize: '0.9rem'}}>{t('none')}</span> :
-                    <Select variant="standard" value={parameter.tapFrequencyAsleep}
-                        onChange={onTapFrequencyAsleepChange}>
-                        <MenuItem value="always">{t('every minute')}</MenuItem>
-                        <MenuItem value="none">{t('none')}</MenuItem>
-                    </Select>}
+                    <TapFrequencyControl max={8} value={parameter.tapFrequencyAsleep}
+                        onChange={onTapFrequencyAsleepChange}/>
+                }
             </div>
         </section>
         <footer>
@@ -187,29 +183,29 @@ const EnergyPanel = React.memo(({iv, energy, parameter, dispatch}: {
                     <span>{t('asleep')}: {energy.averageEfficiency.asleep}</span>
                 </footer>}
             </section>
-            <Collapse in={energy.canBeFullInventory && parameter.period >= 24}>
+            <Collapse in={energy.showSkillStock && parameter.period >= 24}>
                 <section>
                     <label>{t('full inventory while sleeping')}:</label>
-                    <div>{energy.timeToFullInventory < 0 ? t('none') :
-                        new AmountOfSleep(energy.timeToFullInventory).toString(t)}</div>
+                    <div>{result.timeToFullInventory < 0 ? t('none') :
+                        new AmountOfSleep(result.timeToFullInventory).toString(t)}</div>
                     <footer>
                         <span>{t('carry limit')}: {carryLimit}</span>
-                        <span>{t('sneaky snacking')}: {energy.timeToFullInventory < 0 ? t('none') :
-                            energy.helpCount.asleepFull.toFixed(1) + ' ' + t('times unit')}</span>
+                        <span>{t('sneaky snacking')}: {result.timeToFullInventory < 0 ? t('none') :
+                            result.total.sneakySnacking.toFixed(1) + ' ' + t('times unit')}</span>
                     </footer>
                 </section>
                 <section>
                     <label>{t('skill trigger after wake up')}:</label>
                     <div>
                         {iv.pokemon.specialty !== 'Skills' ?
-                        <>{(energy.skillProbabilityAfterWakeup.once * 100).toFixed(1)}%</> :
+                        <>{(result.skillProbabilityAfterWakeup.once * 100).toFixed(1)}%</> :
                         <>
-                            ❶{(energy.skillProbabilityAfterWakeup.once * 100).toFixed(1)}%<> </>
-                            ❷{(energy.skillProbabilityAfterWakeup.twice * 100).toFixed(1)}%
+                            ❶{(result.skillProbabilityAfterWakeup.once * 100).toFixed(1)}%<> </>
+                            ❷{(result.skillProbabilityAfterWakeup.twice * 100).toFixed(1)}%
                         </>}
                     </div>
                     <footer>
-                        <span>{t('lottery count')}: {energy.helpCount.asleepNotFull.toFixed(2)}</span>
+                        <span>{t('lottery count')}: {result.asleep.normal.toFixed(2)}</span>
                     </footer>
                 </section>
             </Collapse>

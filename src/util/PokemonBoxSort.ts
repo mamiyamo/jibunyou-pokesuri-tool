@@ -2,10 +2,11 @@ import { PokemonBoxItem } from './PokemonBox';
 import PokemonIv from './PokemonIv';
 import PokemonRp from './PokemonRp';
 import PokemonStrength, {
-    IngredientStrength, isSkillStrengthZero, StrengthParameter, whistlePeriod,
+    IngredientStrength, isSkillStrengthZero, StrengthParameter,
 } from './PokemonStrength';
 import { IngredientName, IngredientNames } from '../data/pokemons';
 import { MainSkillName, MainSkillNames, matchMainSkillName } from './MainSkill';
+import { NoTap, whistlePeriod } from './Energy';
 import i18next from 'i18next';
 
 /** Subset of StrengthResult. */
@@ -123,7 +124,7 @@ export function sortPokemonItems(filtered: PokemonBoxItem[],
             b.id - a.id), ''];
     }
     else if (sort === "ingredient") {
-        if (parameter.tapFrequency === 'none') {
+        if (parameter.tapFrequencyAwake === NoTap) {
             return [[], t('no ingredient')];
         }
 
@@ -152,7 +153,7 @@ export function sortPokemonItems(filtered: PokemonBoxItem[],
         return [ret, ret.length > 0 ? '' : t('no pokemon found')]
     }
     else if (sort === "skill") {
-        if (parameter.tapFrequency === 'none' ||
+        if (parameter.tapFrequencyAwake === NoTap ||
             parameter.period <= whistlePeriod) {
             return [[], t('no skill')];
         }
