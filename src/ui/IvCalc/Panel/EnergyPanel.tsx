@@ -89,7 +89,7 @@ const EnergyPanel = React.memo(({iv, energy, parameter, dispatch}: {
                 width={width} period={parameter.period} result={energy}/>        <Collapse in={!parameter.isEnergyAlwaysFull}>
             <section ref={dialogRef}>
                 <div>
-                    <label>{t('skills.Energy for Everyone S')}:</label>
+                    <label>{t('skills.Energy for Everyone S.name')}:</label>
                     <div>
                         <Select variant="standard" value={parameter.e4eEnergy.toString()}
                             onChange={onRestoreEnergyChange}>
