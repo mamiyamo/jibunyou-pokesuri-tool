@@ -28,6 +28,7 @@ import { AvocadoIconPaths } from './AvocadoIcon';
 import { CornIconPaths } from './CornIcon';
 import { HoneyIconPaths } from './HoneyIcon';
 import { PotatoIconPaths } from './PotatoIcon';
+import { PumpkinIconPaths } from './PumpkinIcon';
 import { OilIconPaths } from './OilIcon';
 import { IngredientName } from '../../data/pokemons';
 
@@ -41,14 +42,17 @@ const IngredientDrawIcon = React.memo((props: IngredientDrawIconProps) => {
             <g transform="translate(48,0) scale(0.5)">
                 {props.firstIngredient === "avocado" && <AvocadoIconPaths/>}
                 {props.firstIngredient === "honey" && <HoneyIconPaths/>}
+                {props.firstIngredient === "pumpkin" && <PumpkinIconPaths/>}
             </g>
             <g transform="translate(0, 98) scale(0.5)">
                 {props.firstIngredient === "avocado" && <PotatoIconPaths />}
                 {props.firstIngredient === "honey" && <OilIconPaths/>}
+                {props.firstIngredient === "pumpkin" && <CornIconPaths/>}
             </g>
             <g transform="translate(100,98) scale(0.5)">
                 {props.firstIngredient === "avocado" && <OilIconPaths />}
                 {props.firstIngredient === "honey" && <CornIconPaths/>}
+                {props.firstIngredient === "pumpkin" && <PotatoIconPaths/>}
             </g>
         </SvgIcon>
     );
