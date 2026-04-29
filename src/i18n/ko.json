@@ -353,7 +353,9 @@
         "expert skill effect": "스킬 1.25배",
 
         "none": "없음",
-        "cresselia on your team": "크레세리아를 편성하다",
+          "enabled": "활성화",
+          "pokemon on your team": "{{pokemon}}를 편성하다",
+          "cresselia on your team": "크레세리아를 편성하다",
         "sleep twice": "분할 수면하기",
         "total n pokemon": "총 <n/>체",
         "range separator": "~",
@@ -1183,6 +1185,7 @@
             "Shelgon": "쉘곤",
             "Salamence": "보만다",
             "Latias": "라티아스",
+            "Latios": "라티오스",
             "Shinx": "꼬링크",
             "Luxio": "럭시오",
             "Luxray": "렌트라",

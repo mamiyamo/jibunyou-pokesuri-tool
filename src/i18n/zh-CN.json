@@ -355,7 +355,9 @@
         "expert skill effect": "技能1.25倍",
 
         "none": "无",
-        "cresselia on your team": "队伍中有克雷色利亚",
+          "enabled": "启用",
+          "pokemon on your team": "队伍中有{{pokemon}}",
+          "cresselia on your team": "队伍中有克雷色利亚",
         "sleep twice": "分次睡眠",
         "total n pokemon": "合计<n/>只",
         "range separator": "～",
@@ -1186,6 +1188,7 @@
             "Shelgon": "甲壳龙",
             "Salamence": "暴飞龙",
             "Latias": "拉帝亚斯",
+            "Latios": "拉帝欧斯",
             "Shinx": "小猫怪",
             "Luxio": "勒克猫",
             "Luxray": "伦琴猫",
