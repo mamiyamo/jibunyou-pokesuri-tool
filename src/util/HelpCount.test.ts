@@ -178,7 +178,6 @@ describe('calculateHelpCount', () => {
         expect(result.awake.all).toBe(0);
         expect(result.asleep.all).toBe(0);
     });
-
     describe('carryLimit calculation', () => {
         // Toxel Lv60: iv.carryLimit === 6
         function createToxelIv() {
