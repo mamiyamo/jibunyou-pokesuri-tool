@@ -1,7 +1,6 @@
 import PokemonStrength, {
     createStrengthParameter, StrengthParameter, whistlePeriod,
     isSkillStrengthZero,
-    expertFavoriteBerryBonus,
     getAverageIngredientDrawStrength,
 } from './PokemonStrength';
 import PokemonIv from './PokemonIv';

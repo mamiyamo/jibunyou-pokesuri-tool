@@ -61,12 +61,6 @@ export const expertFavoriteSkillTriggerBonus = 1.25;
 /** Helping speed penalty for non-favorite berries in Expert Mode */
 export const expertNonFavoriteBerrySpeedPenalty = 0.15;
 
-const hyperCutterAverageIngredientStrength =
-    (ingredientStrength.potato +
-        ingredientStrength.oil +
-        ingredientStrength.tomato +
-        ingredientStrength.corn) / 4;
-
 /**
  * Represents the parameter of PokemonStrength.calc.
  */
