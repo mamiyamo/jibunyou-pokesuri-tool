@@ -1075,7 +1075,10 @@ export class HelpCountSimulation {
                 skillOnce += probNormalN * (1 - skillNoneN);
             }
         }
-        return { skillOnce, skillTwice: Math.max(0, skillTwice) };
+        return {
+            skillOnce,
+            skillTwice: Math.abs(skillTwice) < 1e-12 ? 0 : Math.max(0, skillTwice),
+        };
     }
 
     /**

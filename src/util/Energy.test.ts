@@ -9,11 +9,13 @@ const paramBase = {
     e4eEnergy: 18,
     e4eCount: 3,
     sleepScore: 100,
+    tapFrequency: "always",
     tapFrequencyAsleep: "none",
     helpBonusCount: 0,
     recoveryBonusCount: 0,
     isEnergyAlwaysFull: false,
     isGoodCampTicketSet: false,
+    pityProc: false,
 };
 function createParam(obj: Partial<EnergyParameter>): EnergyParameter {
     return Object.assign({fieldIndex: 0}, paramBase, obj) as EnergyParameter;
@@ -39,12 +41,12 @@ describe('Energy', () => {
         ]);
 
         expect(result.efficiencies).toEqual([
-            {start: 0, end: 210, efficiency: 2.222, isAwake: true, isSnacking: false, isInPeriod: true},
-            {start: 210, end: 430, efficiency: 1.923, isAwake: true, isSnacking: false, isInPeriod: true},
-            {start: 430, end: 630, efficiency: 1.724, isAwake: true, isSnacking: false, isInPeriod: true},
-            {start: 630, end: 930, efficiency: 1.515, isAwake: true, isSnacking: false, isInPeriod: true},
-            {start: 930, end: 1060, efficiency: 1.515, isAwake: false, isSnacking: false, isInPeriod: true},
-            {start: 1060, end: 1440, efficiency: 1, isAwake: false, isSnacking: false, isInPeriod: true},
+            {start: 0, end: 210, efficiency: 2.222, frequencyRate: 0.45, isAwake: true, isSnacking: false, isInPeriod: true},
+            {start: 210, end: 430, efficiency: 1.923, frequencyRate: 0.52, isAwake: true, isSnacking: false, isInPeriod: true},
+            {start: 430, end: 630, efficiency: 1.724, frequencyRate: 0.58, isAwake: true, isSnacking: false, isInPeriod: true},
+            {start: 630, end: 930, efficiency: 1.515, frequencyRate: 0.66, isAwake: true, isSnacking: false, isInPeriod: true},
+            {start: 930, end: 1060, efficiency: 1.515, frequencyRate: 0.66, isAwake: false, isSnacking: false, isInPeriod: true},
+            {start: 1060, end: 1440, efficiency: 1, frequencyRate: 1, isAwake: false, isSnacking: false, isInPeriod: true},
         ]);
     });
 
@@ -68,13 +70,13 @@ describe('Energy', () => {
         ]);
 
         expect(result.efficiencies).toEqual([
-            {start: 0, end: 180, efficiency: 2.222, isAwake: true, isSnacking: false, isInPeriod: true},
-            {start: 180, end: 210, efficiency: 2.222, isAwake: true, isSnacking: false, isInPeriod: false},
-            {start: 210, end: 430, efficiency: 1.923, isAwake: true, isSnacking: false, isInPeriod: false},
-            {start: 430, end: 630, efficiency: 1.724, isAwake: true, isSnacking: false, isInPeriod: false},
-            {start: 630, end: 930, efficiency: 1.515, isAwake: true, isSnacking: false, isInPeriod: false},
-            {start: 930, end: 1060, efficiency: 1.515, isAwake: false, isSnacking: false, isInPeriod: false},
-            {start: 1060, end: 1440, efficiency: 1, isAwake: false, isSnacking: false, isInPeriod: false},
+            {start: 0, end: 180, efficiency: 2.222, frequencyRate: 0.45, isAwake: true, isSnacking: false, isInPeriod: true},
+            {start: 180, end: 210, efficiency: 2.222, frequencyRate: 0.45, isAwake: true, isSnacking: false, isInPeriod: false},
+            {start: 210, end: 430, efficiency: 1.923, frequencyRate: 0.52, isAwake: true, isSnacking: false, isInPeriod: false},
+            {start: 430, end: 630, efficiency: 1.724, frequencyRate: 0.58, isAwake: true, isSnacking: false, isInPeriod: false},
+            {start: 630, end: 930, efficiency: 1.515, frequencyRate: 0.66, isAwake: true, isSnacking: false, isInPeriod: false},
+            {start: 930, end: 1060, efficiency: 1.515, frequencyRate: 0.66, isAwake: false, isSnacking: false, isInPeriod: false},
+            {start: 1060, end: 1440, efficiency: 1, frequencyRate: 1, isAwake: false, isSnacking: false, isInPeriod: false},
         ]);
     });
 
@@ -110,7 +112,7 @@ describe('Energy', () => {
 
         expect(result.events[0].energyAfter).toBe(88);
         expect(result.efficiencies[0]).toEqual({
-            start: 0, end: 80, efficiency: 2.222,
+            start: 0, end: 80, efficiency: 2.222, frequencyRate: 0.45,
             isAwake: true, isSnacking: false, isInPeriod: true,
         });
 
@@ -134,7 +136,7 @@ describe('Energy', () => {
 
         expect(result.events[0].energyAfter).toBe(105);
         expect(result.efficiencies[0]).toEqual({
-            start: 0, end: 260, efficiency: 2.222,
+            start: 0, end: 260, efficiency: 2.222, frequencyRate: 0.45,
             isAwake: true, isSnacking: false, isInPeriod: true,
         });
 
@@ -254,6 +256,7 @@ describe('Energy', () => {
         const ef = result.efficiencies.find(x => x.isSnacking);
         expect(ef).toEqual({
             start: 1281, end: 1440, efficiency: 1,
+            frequencyRate: 1,
             isAwake: false, isSnacking: true, isInPeriod: true,
         });
 

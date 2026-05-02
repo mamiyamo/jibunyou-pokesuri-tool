@@ -9,6 +9,16 @@ import { HelpEventBonus } from '../data/events';
 /** Efficiency list */
 type EfficiencyList = 2.222 | 1.923 | 1.724 | 1.515 | 1.0;
 
+/** Frequency rate (1 / efficiency) */
+type FrequencyRate = 0.45 | 0.52 | 0.58 | 0.66 | 1;
+
+/** Tap frequency constants */
+export const AlwaysTap = 1;
+export const NoTap = 0;
+
+/** Tap frequency in minutes (2-1440), or AlwaysTap (1), or NoTap (0) */
+export type TapFrequency = number | "always" | "none";
+
 export interface EnergyParameter {
     /**
      * How many hours' worth of accumulated strength to calculate.
@@ -64,10 +74,10 @@ export interface EnergyParameter {
     sleepScore: number;
 
     /** How often tap the pokemon (awake) */
-    tapFrequency: "always"|"none";
+    tapFrequency: TapFrequency;
 
     /** How often tap the pokemon (asleep) */
-    tapFrequencyAsleep: "always"|"none";
+    tapFrequencyAsleep: TapFrequency;
 
     /** Whether good camp ticket is set or not */
     isGoodCampTicketSet: boolean;
@@ -109,6 +119,8 @@ type EfficiencyEvent = {
     end: number;
     /** Efficiency rating */
     efficiency: EfficiencyList;
+    /** Frequency rate */
+    frequencyRate: FrequencyRate;
     /** Whether is awake or not */
     isAwake: boolean;
     /** Sneaky Snacking or not */
@@ -259,8 +271,10 @@ class Energy {
         const {carryLimit, skillRate, timeToFullInventory,
             helpCount, skillProbabilityAfterWakeup } =
             this.calculateSneakySnacking(events, efficiencies, param, bonus, isWhistle);
-        const canBeFullInventory = (param.tapFrequency === "always" &&
-            param.tapFrequencyAsleep === "none");
+        const canBeFullInventory = (
+            (param.tapFrequency === "always" || param.tapFrequency === AlwaysTap) &&
+            (param.tapFrequencyAsleep === "none" || param.tapFrequencyAsleep === NoTap)
+        );
 
         return {sleepTime, events, efficiencies, canBeFullInventory,
             timeToFullInventory, carryLimit, skillRate,
@@ -411,6 +425,7 @@ class Energy {
                 ret.push({
                     start, end,
                     efficiency: this.getEfficiencyByEnergy(energy),
+                    frequencyRate: getFrequencyRateByEnergy(energy),
                     isAwake: true, isSnacking: false, isInPeriod: true,
                 });
 
@@ -420,6 +435,7 @@ class Energy {
             ret.push({
                 start, end: curMinutes,
                 efficiency: this.getEfficiencyByEnergy(energy),
+                frequencyRate: getFrequencyRateByEnergy(energy),
                 isAwake: true, isSnacking: false, isInPeriod: true,
             });
         }
@@ -562,7 +578,8 @@ class Energy {
         },
     } {
         const isGoodCampTicketSet = param.isGoodCampTicketSet;
-        const carryLimit = Math.ceil((this._iv.carryLimit + bonus.carryLimit) *
+        const carryLimit = Math.ceil((this._iv.carryLimit + bonus.carryLimitAdd) *
+            bonus.carryLimitMul *
             (isGoodCampTicketSet ? 1.2 : 1));
         if (this._iv.pokemon.frequency === 0) {
             return {
@@ -579,8 +596,10 @@ class Energy {
         const isEnergyAlwaysFull = param.isEnergyAlwaysFull;
         const helpBonusCount = param.helpBonusCount +
             (this._iv.hasHelpingBonusInActiveSubSkills ? 1 : 0);
-        const alwaysSnacking = param.tapFrequency === "none";
-        const alwaysTapAsleep = param.tapFrequencyAsleep === "always";
+        const alwaysSnacking = param.tapFrequency === "none" ||
+            param.tapFrequency === NoTap;
+        const alwaysTapAsleep = param.tapFrequencyAsleep === "always" ||
+            param.tapFrequencyAsleep === AlwaysTap;
 
         // check if the field is expert mode
         const isExpertMode = isExpertField(param.fieldIndex) && !isWhistle;
@@ -641,7 +660,7 @@ class Energy {
                 events.splice(i + 1, 0, {
                     minutes: timeFullInventory, type: 'snack',
                     energyBefore: energy, energyAfter: energy,
-                    isSnacking: false, isInPeriod: event.isInPeriod,
+                    isSnacking: true, isInPeriod: event.isInPeriod,
                 });
             }
         }
@@ -658,6 +677,7 @@ class Energy {
                 efficiencies.splice(i + 1, 0, {
                     start: timeFullInventory, end,
                     efficiency: efficiency.efficiency,
+                    frequencyRate: efficiency.frequencyRate,
                     isAwake: efficiency.isAwake, isSnacking: true,
                     isInPeriod: efficiency.isInPeriod,
                 });
@@ -719,6 +739,14 @@ class Energy {
         if (energy > 1) { return 1.515; }
         return 1;
     }
+}
+
+export function getFrequencyRateByEnergy(energy: number): FrequencyRate {
+    if (energy > 80) { return 0.45; }
+    if (energy > 60) { return 0.52; }
+    if (energy > 40) { return 0.58; }
+    if (energy > 1) { return 0.66; }
+    return 1;
 }
 
 export default Energy;
