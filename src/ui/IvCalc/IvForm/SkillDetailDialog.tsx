@@ -50,7 +50,7 @@ const SkillDetailDialog = React.memo(({value, open, onClose}: {
     const content = getSkillContent(value, t);
     return (
         <StyledSkillDetailDialog open={open} onClose={onClose}>
-            <DialogTitle>{t(`skills.${skill}.name`)}</DialogTitle>
+            <DialogTitle>{t(`skills.${skill}`)}</DialogTitle>
             <DialogContent>
                 <header>{content.desc}</header>
                 <footer>{content.detail}</footer>

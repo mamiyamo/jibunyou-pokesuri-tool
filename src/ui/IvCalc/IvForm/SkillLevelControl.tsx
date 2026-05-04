@@ -36,8 +36,8 @@ const SkillLevelControl = React.memo(({value, onChange}: {
             <VersatileMenuItem
                 key={name} value={name} dense
             >
-                <span className="hide">{t('skills.Versatile.name')} (</span>
-                {t(`skills.${name.replace(" (Random)", "")}.name`)}
+                <span className="hide">{t('skills.Versatile')} (</span>
+                {t(`skills.${name.replace(" (Random)", "")}`)}
                 <span className="hide">)</span>
             </VersatileMenuItem>
         );
@@ -62,7 +62,7 @@ const SkillLevelControl = React.memo(({value, onChange}: {
     return <StyledSkillLevel>
         {!isVersatile &&
             <span style={{marginRight: '10px'}}>
-                {t(`skills.${value.pokemon.skill}.name`)}
+                {t(`skills.${value.pokemon.skill}`)}
             </span>
         }
         {isVersatile &&

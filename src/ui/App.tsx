@@ -7,7 +7,6 @@ import AppConfig, {
     AppConfigContext, AppType, saveConfig,
 } from './AppConfig';
 import ToolBar from './ToolBar';
-import NewsInfo from './NewsInfo';
 import PwaNotify from './PwaBanner';
 import { useTranslation } from 'react-i18next'
 
@@ -66,7 +65,6 @@ export default function App({config}: {config:AppConfig}) {
         <AppConfigContext.Provider value={appConfig}>
             <ToolBar app={curApp} onAppChange={onAppChange}
                 onAppConfigChange={onAppConfigChange}/>
-            <NewsInfo appType={curApp} onAppConfigChange={onAppConfigChange}/>
             {curApp === "ResearchCalc" && <ResearchCalcApp/>}
             {curApp === "IvCalc" && <IvCalcApp/>}
             <PwaNotify app={curApp} pwaCount={config.pwacnt} onClose={onPwaBannerClose}/>
