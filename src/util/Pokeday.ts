@@ -10,6 +10,7 @@ import SubSkillList from './SubSkillList';
 import { SubSkillListProps } from './SubSkillList';
 import { IngredientType } from './PokemonRp';
 import { getEventBonus } from '../data/events';
+import { AlwaysTap } from './Energy';
 
 export type PokedayRecipeCategory = 'curry' | 'salad' | 'dessert';
 
@@ -501,14 +502,14 @@ export function createPokedayHelpParameterWith({
     helpBonusCount: number;
     baseParameter?: Pick<StrengthParameter,
         'event'|'fieldIndex'|'expertEffect'|'useSkillPity'|'isGoodCampTicketSet'|
-        'isEnergyAlwaysFull'|'sleepScore'|'tapFrequency'|'tapFrequencyAsleep'>;
+        'isEnergyAlwaysFull'|'sleepScore'|'tapFrequencyAwake'|'tapFrequencyAsleep'>;
 }): StrengthParameter {
     const helpBonus = Math.max(0, Math.min(4, Math.floor(helpBonusCount))) as 0|1|2|3|4;
     return createStrengthParameter({
         period: 24,
         isEnergyAlwaysFull: baseParameter?.isEnergyAlwaysFull ?? true,
-        tapFrequency: baseParameter?.tapFrequency ?? 'always',
-        tapFrequencyAsleep: baseParameter?.tapFrequencyAsleep ?? 'always',
+        tapFrequencyAwake: baseParameter?.tapFrequencyAwake ?? AlwaysTap,
+        tapFrequencyAsleep: baseParameter?.tapFrequencyAsleep ?? AlwaysTap,
         sleepScore: baseParameter?.sleepScore ?? 100,
         event: baseParameter?.event ?? 'none',
         fieldIndex: baseParameter?.fieldIndex ?? noFavoriteFieldIndex,

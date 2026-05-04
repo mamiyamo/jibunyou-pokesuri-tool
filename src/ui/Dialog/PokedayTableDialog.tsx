@@ -23,11 +23,22 @@ import {
 import { useTranslation } from 'react-i18next';
 import IngredientIcon from '../IvCalc/IngredientIcon';
 import PokemonIcon from '../IvCalc/PokemonIcon';
+import { AlwaysTap, NoTap, TapFrequency } from '../../util/Energy';
 
 type TeamSelectionMap = Record<string, (number | '')[]>;
 type RecipeIngredientEnabledMap = Record<string, Partial<Record<IngredientName, boolean>>>;
 type BaselinePokemonSkillKey = Exclude<keyof IngredientBaselinePokemonConfig, 'level'>;
 const PARTY_COUNT = 5;
+
+function formatTapFrequency(value: TapFrequency): string {
+    if (value === AlwaysTap) {
+        return '毎分';
+    }
+    if (value === NoTap) {
+        return 'なし';
+    }
+    return `${value}分ごと`;
+}
 
 function recipeKey(recipe: PokedayRecipe): string {
     return `${recipe.category}:${recipe.name}`;
@@ -306,7 +317,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         isGoodCampTicketSet: parameter.isGoodCampTicketSet,
         isEnergyAlwaysFull: parameter.isEnergyAlwaysFull,
         sleepScore: parameter.sleepScore,
-        tapFrequency: parameter.tapFrequency,
+        tapFrequencyAwake: parameter.tapFrequencyAwake,
         tapFrequencyAsleep: parameter.tapFrequencyAsleep,
     }), [
         parameter.event,
@@ -316,7 +327,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         parameter.isGoodCampTicketSet,
         parameter.isEnergyAlwaysFull,
         parameter.sleepScore,
-        parameter.tapFrequency,
+        parameter.tapFrequencyAwake,
         parameter.tapFrequencyAsleep,
     ]);
     const detailCacheRef = React.useRef<Map<string, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>>>(
@@ -333,7 +344,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         pokedayParameter.isGoodCampTicketSet,
         pokedayParameter.isEnergyAlwaysFull,
         pokedayParameter.sleepScore,
-        pokedayParameter.tapFrequency,
+        pokedayParameter.tapFrequencyAwake,
         pokedayParameter.tapFrequencyAsleep,
     ]);
     React.useEffect(() => {
@@ -384,7 +395,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const energySettingLabel = parameter.isEnergyAlwaysFull
         ? '常に80%固定'
         : `設定通り(${parameter.sleepScore}%)`;
-    const tapSettingLabel = `起床 ${parameter.tapFrequency === 'always' ? '毎分' : 'なし'} / 睡眠 ${parameter.tapFrequencyAsleep === 'always' ? '毎分' : 'なし'}`;
+    const tapSettingLabel = `起床 ${formatTapFrequency(parameter.tapFrequencyAwake)} / 睡眠 ${formatTapFrequency(parameter.tapFrequencyAsleep)}`;
     const baseDailyCountMap = React.useMemo(() => {
         const ret: Record<number, Partial<Record<IngredientName, PokedayIngredientDailyDetail>>> = {};
         for (const boxItem of boxItems) {

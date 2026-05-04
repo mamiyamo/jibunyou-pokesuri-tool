@@ -26,11 +26,13 @@ export interface IngredientSlot {
 /** Bonus that affect inventory consumption */
 export interface InventoryBonus {
     /** Berry count bonus from events (0 or 1) */
-    berryBonus: 0|1;
+    berry: 0|1;
     /** Ingredient count bonus from events (0 or 1) */
-    ingredientBonus: 0|1;
-    /** Carry limit bonus */
-    carryLimitBonus: 0|8|15;
+    ingredient: 0|1;
+    /** Carry limit additive bonus */
+    carryLimitAdd: 0|8|15;
+    /** Carry limit multiplier bonus */
+    carryLimitMul: 1|1.5;
     /**
      * Whether expert mode ingredient bonus applies.
      * True if following condition are all met.
@@ -38,7 +40,7 @@ export interface InventoryBonus {
      * - ExpertEffects is `ing`
      * - Favorite berry
      */
-    expertIngBonus: boolean;
+    expertIng: boolean;
 }
 
 /**
@@ -217,6 +219,26 @@ class PokemonIv {
     calculateSkillRateWithPityProc(rate: number): number {
         return rate /
             (1 - Math.pow(1 - rate, this.pityProcHelpCount + 1));
+    }
+
+    /**
+     * Calculate skill rate with optional skill trigger bonus and pity proc.
+     *
+     * @param skillTriggerBonus Event or area skill trigger multiplier.
+     * @param usePity Whether to include pity proc.
+     * @returns Skill proc rate.
+     */
+    getSkillRateWithPity(skillTriggerBonus: number = 1, usePity: boolean = false): number {
+        return this.getOrCache(`skillRateWithPity:${skillTriggerBonus}:${usePity}`, () => {
+            const rate = this.skillRate * skillTriggerBonus;
+            if (rate <= 0) {
+                return 0;
+            }
+            if (!usePity) {
+                return rate;
+            }
+            return this.calculateSkillRateWithPityProc(rate);
+        });
     }
 
     get ingredientRate(): number {
@@ -420,9 +442,9 @@ class PokemonIv {
         };
 
         // Fill bonus
-        const berryBonus = bonus?.berryBonus ?? 0;
-        const ingredientBonus = bonus?.ingredientBonus ?? 0;
-        const expertIngBonus = bonus?.expertIngBonus ?? false;
+        const berryBonus = bonus?.berry ?? 0;
+        const ingredientBonus = bonus?.ingredient ?? 0;
+        const expertIngBonus = bonus?.expertIng ?? false;
 
         // Calculate ing bonus
         const ingRate = this.ingredientRate;
