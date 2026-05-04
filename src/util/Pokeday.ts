@@ -268,6 +268,18 @@ export const pokedayRecipeGroups: {
             },
             {
                 category: 'dessert',
+                title: 'おちゃかいコーンスコーン',
+                name: 'おちゃかいコーンスコーン',
+                baseEnergy: 10925,
+                ingredients: [
+                    { name: 'apple', count: 20 },
+                    { name: 'ginger', count: 20 },
+                    { name: 'corn', count: 18 },
+                    { name: 'milk', count: 9 },
+                ],
+            },
+            {
+                category: 'dessert',
                 title: 'フラワーギフトマカロン',
                 name: 'フラワーギフトマカロン',
                 baseEnergy: 13834,
