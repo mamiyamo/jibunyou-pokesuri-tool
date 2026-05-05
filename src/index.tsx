@@ -41,7 +41,8 @@ import i18n from './i18n';
 
     // emulate AdSense banner
     if (window.location.hostname !== "mamiyamo.github.io") {
-        document.body.style.padding = '30px 0px 0px';
+        // Enable this padding together with appending the AdSense banner below.
+        // document.body.style.padding = '30px 0px 0px';
         const ins = document.createElement('ins');
         ins.style.display = 'block';
         ins.style.width = '100%';
