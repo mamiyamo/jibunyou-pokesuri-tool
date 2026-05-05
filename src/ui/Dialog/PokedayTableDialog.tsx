@@ -11,7 +11,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { IngredientName, IngredientNames } from '../../data/pokemons';
 import { formatWithComma } from '../../util/NumberUtil';
 import { PokemonBoxItem } from '../../util/PokemonBox';
-import { StrengthParameter } from '../../util/PokemonStrength';
+import { noFavoriteFieldIndex, StrengthParameter } from '../../util/PokemonStrength';
 import { loadBoxSortConfig, sortPokemonItems } from '../../util/PokemonBoxSort';
 import {
     calculateMinimumWorkDaysDetail, getDailyIngredientDetailMap, getRecipeFinalEnergy,
@@ -311,7 +311,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
     const [sortConfigRevision, setSortConfigRevision] = React.useState(0);
     const pokedayParameter = React.useMemo(() => ({
         event: parameter.event,
-        fieldIndex: parameter.fieldIndex,
+        fieldIndex: noFavoriteFieldIndex,
         expertEffect: parameter.expertEffect,
         useSkillPity: parameter.useSkillPity,
         isGoodCampTicketSet: parameter.isGoodCampTicketSet,
@@ -321,7 +321,6 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         tapFrequencyAsleep: parameter.tapFrequencyAsleep,
     }), [
         parameter.event,
-        parameter.fieldIndex,
         parameter.expertEffect,
         parameter.useSkillPity,
         parameter.isGoodCampTicketSet,
@@ -391,7 +390,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
         getIngredientBaselineDetailMaps(pokedayParameter, ingredientNames, baselinePokemonConfig)
     ), [baselinePokemonConfig, ingredientNames, pokedayParameter]);
     const eventLabel = parameter.event === 'none' ? 'なし' : t(`events.${parameter.event}`);
-    const fieldLabel = t(`area.${parameter.fieldIndex}`);
+    const fieldLabel = t('no favorite berries');
     const energySettingLabel = parameter.isEnergyAlwaysFull
         ? '常に80%固定'
         : `設定通り(${parameter.sleepScore}%)`;
@@ -540,7 +539,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
 
     return <Dialog open={open} onClose={onClose} fullWidth maxWidth="xl"
         fullScreen={isSmallScreen}>
-        <DialogTitle>ポケ日算</DialogTitle>
+        <DialogTitle>食材シミュ</DialogTitle>
         <DialogContent dividers sx={{
             px: isSmallScreen ? 1 : 3,
             overflowX: 'hidden',

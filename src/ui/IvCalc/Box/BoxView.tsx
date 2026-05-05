@@ -27,10 +27,14 @@ import { useTranslation } from 'react-i18next';
 
 const BOX_SORT_CONFIG_CHANGED_EVENT = 'PstPokemonBoxSortConfigChanged';
 
-const BoxView = React.memo(({items, iv, selectedId, parameter, dispatch}: {
+const BoxView = React.memo(({
+    items, iv, selectedId, multiSelectedIds, selectionAction, parameter, dispatch,
+}: {
     items: PokemonBoxItem[],
     iv: PokemonIv,
     selectedId: number,
+    multiSelectedIds?: number[],
+    selectionAction?: 'select' | 'toggleTeamPlanCandidate',
     parameter: StrengthParameter,
     dispatch: (action: IvAction) => void,
 }) => {
@@ -94,10 +98,13 @@ const BoxView = React.memo(({items, iv, selectedId, parameter, dispatch}: {
             sortConfig.mainSkill, filtered, parameter, t]);
 
     let elms = React.useMemo(() => sortedItems.map((item) => (
-        <BoxLargeItem key={item.id} item={item} selected={item.id === selectedId}
+        <BoxLargeItem key={item.id} item={item}
+            selected={(multiSelectedIds ?? [selectedId]).includes(item.id)}
+            primarySelected={item.id === selectedId}
+            selectionAction={selectionAction ?? 'select'}
             dispatch={dispatch} onCandyClick={onCandyClick}
             selectedRef={item.id === selectedId ? selectedRef : undefined}/>)),
-        [sortedItems, dispatch, onCandyClick, selectedId, selectedRef]);
+        [sortedItems, dispatch, onCandyClick, selectedId, selectedRef, multiSelectedIds, selectionAction]);
     if (!sortConfig.descending) {
         elms = [...elms].reverse();
     }
@@ -172,12 +179,16 @@ let boxFilterConfig = new BoxFilterConfig({});
 interface BoxLargeItemProps {
     item: PokemonBoxItem;
     selected: boolean;
+    primarySelected: boolean;
+    selectionAction: 'select' | 'toggleTeamPlanCandidate';
     dispatch: (action: IvAction) => void;
     onCandyClick: (item: PokemonBoxItem) => void;
     selectedRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-const BoxLargeItem = React.memo(({item, selected, dispatch, onCandyClick, selectedRef}: BoxLargeItemProps) => {
+const BoxLargeItem = React.memo(({
+    item, selected, primarySelected, selectionAction, dispatch, onCandyClick, selectedRef,
+}: BoxLargeItemProps) => {
     const { t } = useTranslation();
     const [moreMenuAnchor, setMoreMenuAnchor] = React.useState<HTMLElement | null>(null);
     const isMenuOpen = Boolean(moreMenuAnchor);
@@ -188,8 +199,8 @@ const BoxLargeItem = React.memo(({item, selected, dispatch, onCandyClick, select
     }, 500);
 
     const clickHandler = React.useCallback(() => {
-        dispatch({type: "select", payload: {id: item.id}});
-    }, [dispatch, item.id]);
+        dispatch({type: selectionAction, payload: {id: item.id}});
+    }, [dispatch, item.id, selectionAction]);
     const onMoreIconClick = React.useCallback((event: React.MouseEvent<HTMLElement>) => {
         setMoreMenuAnchor(event.currentTarget);
     }, [setMoreMenuAnchor]);
@@ -217,7 +228,7 @@ const BoxLargeItem = React.memo(({item, selected, dispatch, onCandyClick, select
                 <PokemonIcon idForm={item.iv.idForm} size={32}/>
                 <footer>{item.filledNickname(t)}</footer>
             </ButtonBase>
-            {selected && <IconButton onClick={onMoreIconClick}><MoreIcon/></IconButton>}
+            {primarySelected && <IconButton onClick={onMoreIconClick}><MoreIcon/></IconButton>}
             <Menu anchorEl={moreMenuAnchor} open={isMenuOpen}
             onClose={onMoreMenuClose} anchorOrigin={{vertical: "bottom", horizontal: "left"}}>
                 <MenuList>

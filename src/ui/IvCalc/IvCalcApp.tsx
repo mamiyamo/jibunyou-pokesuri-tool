@@ -13,6 +13,8 @@ import RpView from './Rp/RpView';
 import StrengthView from './Strength/StrengthView';
 import RatingView from './RatingView';
 import DailyPlanView from './DailyPlan/DailyPlanView';
+import TeamPlanView from './DailyPlan/TeamPlanView';
+import TeamPlanMealSettingsView from './DailyPlan/TeamPlanMealSettingsView';
 import BoxItemDialog from './Box/BoxItemDialog';
 import BoxExportDialog from './Box/BoxExportDialog';
 import BoxImportDialog from './Box/BoxImportDialog';
@@ -86,6 +88,7 @@ const ResearchCalcApp = React.memo(() => {
                 <StyledTab label={t('strength2')}/>
                 <StyledTab label={t('rating')}/>
                 <StyledTab label="1日編成"/>
+                <StyledTab label="1日チーム編成"/>
             </StyledTabs>
             {state.tabIndex === 0 && <RpView state={state} width={width}/>}
             {state.tabIndex === 1 && <StrengthView state={state} dispatch={dispatch}/>}
@@ -93,6 +96,7 @@ const ResearchCalcApp = React.memo(() => {
                 width={width} useSkillPity={state.parameter.useSkillPity}/>}
             {state.tabIndex === 3 && <DailyPlanView items={state.box.items}
                 parameter={state.parameter}/>}
+            {state.tabIndex === 4 && <TeamPlanView state={state} dispatch={dispatch}/>}
             <RateNotFixedPanel state={state} dispatch={dispatch}/>
 
             <LowerTabHeader state={state}
@@ -106,11 +110,15 @@ const ResearchCalcApp = React.memo(() => {
         {state.lowerTabIndex === 1 &&
             <BoxView items={state.box.items} iv={state.pokemonIv}
                 selectedId={state.selectedItemId} dispatch={dispatch}
+                multiSelectedIds={state.tabIndex === 4 ? state.teamPlanSelectedItemIds : undefined}
+                selectionAction={state.tabIndex === 4 ? 'toggleTeamPlanCandidate' : 'select'}
                 parameter={state.parameter}/>}
         {state.lowerTabIndex === 2 &&
             <StrengthSettingForm value={state.parameter}
                 hasHelpingBonus={state.pokemonIv.hasHelpingBonusInActiveSubSkills}
                 dispatch={dispatch}/>}
+        {state.lowerTabIndex === 3 && state.tabIndex === 4 &&
+            <TeamPlanMealSettingsView/>}
         <BoxItemDialog key={state.boxItemDialogKey}
             open={state.boxItemDialogOpen} boxItem={selectedItem}
             isEdit={state.boxItemDialogIsEdit}

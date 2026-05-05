@@ -11,7 +11,7 @@ export type IvAction = {
         "deleteAll" | "deleteAllClose" | "saveItem"|"restoreItem"|
         "editDialogClose"|"closeAlert"|"openEnergyDialog"|"closeEnergyDialog";
 }|{
-    type: "select"|"edit"|"dup"|"remove";
+    type: "select"|"edit"|"dup"|"remove"|"toggleTeamPlanCandidate";
     payload: {id: number};
 }|{
     type: "addOrEditDone";
@@ -43,6 +43,7 @@ type IvState = {
     parameter: StrengthParameter;
     box: PokemonBox;
     selectedItemId: number;
+    teamPlanSelectedItemIds: number[];
     energyDialogOpen: boolean;
     boxItemDialogOpen: boolean;
     boxItemDialogKey: string;
@@ -61,6 +62,7 @@ type IvStateCache = {
     lowerTabIndex: number;
     iv: string;
     selectedIv: string;
+    teamPlanSelectedIvs: string[];
 };
 
 /**
@@ -91,14 +93,28 @@ export function getInitialIvState(): IvState {
             // ignore deserialization error (e.g. corrupted cache)
         }
     }
+    const teamPlanSelectedItemIds: number[] = [];
+    for (const selectedIvText of cache.teamPlanSelectedIvs) {
+        try {
+            const selectedIv = PokemonIv.deserialize(selectedIvText);
+            const item = initialBox.items.find(x => x.iv.isEqual(selectedIv));
+            if (item !== undefined && !teamPlanSelectedItemIds.includes(item.id)) {
+                teamPlanSelectedItemIds.push(item.id);
+            }
+        }
+        catch {
+            // ignore deserialization error
+        }
+    }
 
     const ret: IvState = {
         tabIndex: cache.tabIndex,
-        lowerTabIndex: cache.lowerTabIndex,
+        lowerTabIndex: normalizeLowerTabIndex(cache.tabIndex, cache.lowerTabIndex),
         pokemonIv: iv,
         parameter: loadStrengthParameter(),
         box: initialBox,
         selectedItemId,
+        teamPlanSelectedItemIds,
         energyDialogOpen: false,
         boxItemDialogOpen: false,
         boxItemDialogKey: "",
@@ -128,7 +144,13 @@ export function getInitialIvState(): IvState {
  * @returns Loaded IvStateCache.
  */
 function loadInitialIvStateCache(): IvStateCache {
-    const ret: IvStateCache = {tabIndex: 0, lowerTabIndex: 0, iv: "", selectedIv: ""};
+    const ret: IvStateCache = {
+        tabIndex: 0,
+        lowerTabIndex: 0,
+        iv: "",
+        selectedIv: "",
+        teamPlanSelectedIvs: [],
+    };
 
     const settings = localStorage.getItem('PstIvState');
     if (settings === null) {
@@ -139,11 +161,11 @@ function loadInitialIvStateCache(): IvStateCache {
         return ret;
     }
     if (typeof(json.tabIndex) === "number" &&
-        json.tabIndex >= 0 && json.tabIndex <= 3) {
+        json.tabIndex >= 0 && json.tabIndex <= 4) {
         ret.tabIndex = json.tabIndex;
     }
     if (typeof(json.lowerTabIndex) === "number" &&
-        json.lowerTabIndex >= 0 && json.lowerTabIndex <= 2) {
+        json.lowerTabIndex >= 0 && json.lowerTabIndex <= 3) {
         ret.lowerTabIndex = json.lowerTabIndex;
     }
     if (typeof(json.iv) === "string") {
@@ -151,6 +173,11 @@ function loadInitialIvStateCache(): IvStateCache {
     }
     if (typeof(json.selectedIv) === "string") {
         ret.selectedIv = json.selectedIv;
+    }
+    if (Array.isArray(json.teamPlanSelectedIvs)) {
+        ret.teamPlanSelectedIvs = json.teamPlanSelectedIvs
+            .filter((value: unknown): value is string => typeof value === "string")
+            .slice(0, 10);
     }
     return ret;
 }
@@ -161,11 +188,16 @@ function loadInitialIvStateCache(): IvStateCache {
  */
 function saveIvStateCache(state: IvState) {
     const selectedItem = state.box.getById(state.selectedItemId);
+    const teamPlanSelectedIvs = (state.teamPlanSelectedItemIds ?? [])
+        .map(id => state.box.getById(id))
+        .filter((item): item is PokemonBoxItem => item !== null)
+        .map(item => item.iv.serialize());
     const cache: IvStateCache = {
         tabIndex: state.tabIndex,
         lowerTabIndex: state.lowerTabIndex,
         iv: state.pokemonIv.serialize(),
         selectedIv: selectedItem === null ? "" : selectedItem.iv.serialize(),
+        teamPlanSelectedIvs,
     };
     localStorage.setItem("PstIvState", JSON.stringify(cache));
 }
@@ -175,10 +207,7 @@ export function ivStateReducer(state: IvState, action: IvAction): IvState {
     const selectedItem = state.box.getById(state.selectedItemId);
     if (type === "changeUpperTab") {
         const value = action.payload.index;
-        let lowerTabIndex = state.lowerTabIndex;
-        if (value !== 1 && lowerTabIndex === 2) {
-            lowerTabIndex = 0;
-        }
+        const lowerTabIndex = normalizeLowerTabIndex(value, state.lowerTabIndex);
         const newState = {...state, tabIndex: value, lowerTabIndex};
         saveIvStateCache(newState);
         return newState;
@@ -223,7 +252,12 @@ export function ivStateReducer(state: IvState, action: IvAction): IvState {
         const box = new PokemonBox(state.box.items);
         const selectedItemId: number = box.add(action.payload.iv, action.payload.nickname);
         box.save();
-        return {...state, box, selectedItemId};
+        const teamPlanSelectedItemIds = state.tabIndex === 4 ?
+            [...state.teamPlanSelectedItemIds, selectedItemId].slice(0, 10) :
+            state.teamPlanSelectedItemIds;
+        const newState = {...state, box, selectedItemId, teamPlanSelectedItemIds};
+        saveIvStateCache(newState);
+        return newState;
     }
     if (type === "export") {
         return {...state, boxExportDialogOpen: true};
@@ -293,6 +327,10 @@ export function ivStateReducer(state: IvState, action: IvAction): IvState {
         box.save();
         const newState = normalizeState({...state, pokemonIv: value.iv, box});
         newState.selectedItemId = selectedItemId;
+        if (value.id === -1 && state.tabIndex === 4 &&
+            !newState.teamPlanSelectedItemIds.includes(selectedItemId)) {
+            newState.teamPlanSelectedItemIds = [...newState.teamPlanSelectedItemIds, selectedItemId].slice(0, 10);
+        }
         saveIvStateCache(newState);
         return newState;
     }
@@ -305,7 +343,7 @@ export function ivStateReducer(state: IvState, action: IvAction): IvState {
     }
 
     // following action requires item
-    if (type !== "select" && type !== "edit" &&
+    if (type !== "select" && type !== "edit" && type !== "toggleTeamPlanCandidate" &&
         type !== "dup" && type !== "remove") {
         return state;
     }
@@ -315,6 +353,19 @@ export function ivStateReducer(state: IvState, action: IvAction): IvState {
     if (type === "select") {
         const newState = normalizeState({...state, pokemonIv: item.iv});
         newState.selectedItemId = id;
+        saveIvStateCache(newState);
+        return newState;
+    }
+    else if (type === "toggleTeamPlanCandidate") {
+        const selected = state.teamPlanSelectedItemIds.includes(id);
+        const teamPlanSelectedItemIds = selected ?
+            state.teamPlanSelectedItemIds.filter(x => x !== id) :
+            state.teamPlanSelectedItemIds.length >= 10 ?
+                state.teamPlanSelectedItemIds :
+                [...state.teamPlanSelectedItemIds, id];
+        const newState = normalizeState({...state, pokemonIv: item.iv});
+        newState.selectedItemId = id;
+        newState.teamPlanSelectedItemIds = teamPlanSelectedItemIds;
         saveIvStateCache(newState);
         return newState;
     }
@@ -335,9 +386,25 @@ export function ivStateReducer(state: IvState, action: IvAction): IvState {
         const box = new PokemonBox(state.box.items);
         box.remove(id);
         box.save();
-        return {...state, box};
+        const newState = {
+            ...state,
+            box,
+            teamPlanSelectedItemIds: state.teamPlanSelectedItemIds.filter(x => x !== id),
+        };
+        saveIvStateCache(newState);
+        return newState;
     }
     return state;
+}
+
+function normalizeLowerTabIndex(tabIndex: number, lowerTabIndex: number): number {
+    if (lowerTabIndex === 3 && tabIndex !== 4) {
+        return 0;
+    }
+    if (lowerTabIndex === 2 && tabIndex !== 1 && tabIndex !== 4) {
+        return 0;
+    }
+    return lowerTabIndex;
 }
 
 export function normalizeState(state: IvState): IvState {

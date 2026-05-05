@@ -128,7 +128,7 @@ const StrengthParameterSummary = React.memo(({state, dispatch, onOpenPokedayTabl
                 <Button onClick={onEditClick} size="small">{t('details')}</Button>
             </span>
             <span>
-                <Button onClick={onOpenPokedayTable} size="small">ポケ日算</Button>
+                <Button onClick={onOpenPokedayTable} size="small">食材シミュ</Button>
             </span>
             <span>
                 <TextLikeButton onClick={onAreaClick}>
