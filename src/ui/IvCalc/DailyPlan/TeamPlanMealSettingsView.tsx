@@ -15,12 +15,24 @@ import {
 import { pokedayRecipeGroups } from '../../../util/Pokeday';
 import IngredientIcon from '../IngredientIcon';
 import NumericInput from '../../common/NumericInput';
-import { useTeamPlanMealSettings } from './TeamPlanMealSettings';
+import {
+    teamPlanNoMealRecipeName,
+    TeamPlanSkillRoundingMode,
+    useTeamPlanMealSettings,
+} from './TeamPlanMealSettings';
 
 const mealLabels = ['朝', '昼', '晩'] as const;
 
 const TeamPlanMealSettingsView = React.memo(() => {
-    const {mealRecipeNames, setMealRecipeNames, mealChoices, stock, setStock} = useTeamPlanMealSettings();
+    const {
+        mealRecipeNames,
+        setMealRecipeNames,
+        mealChoices,
+        stock,
+        setStock,
+        skillRoundingMode,
+        setSkillRoundingMode,
+    } = useTeamPlanMealSettings();
 
     const onMealRecipeChange = React.useCallback((slot: number) => (e: SelectChangeEvent) => {
         const next = [...mealRecipeNames];
@@ -31,6 +43,10 @@ const TeamPlanMealSettingsView = React.memo(() => {
     const onStockChange = React.useCallback((ingredientName: IngredientName, value: number) => {
         setStock(prev => ({...prev, [ingredientName]: Math.min(999, Math.max(0, value))}));
     }, [setStock]);
+
+    const onSkillRoundingModeChange = React.useCallback((e: SelectChangeEvent) => {
+        setSkillRoundingMode(e.target.value as TeamPlanSkillRoundingMode);
+    }, [setSkillRoundingMode]);
 
     return <StyledRoot>
         <section>
@@ -45,8 +61,9 @@ const TeamPlanMealSettingsView = React.memo(() => {
                             {mealLabels[index]}
                         </Typography>
                         <FormControl fullWidth size="small" variant="standard">
-                            <Select value={mealRecipeNames[index] ?? meal.recipe.name}
+                            <Select value={mealRecipeNames[index] ?? meal.recipe?.name ?? teamPlanNoMealRecipeName}
                                 onChange={onMealRecipeChange(index)}>
+                                <MenuItem value={teamPlanNoMealRecipeName}>なし</MenuItem>
                                 {pokedayRecipeGroups.map(group => [
                                     <ListSubheader key={`${group.category}-header-${index}`}>
                                         {group.title}
@@ -64,6 +81,21 @@ const TeamPlanMealSettingsView = React.memo(() => {
                         </Typography>
                     </article>
                 ))}
+            </div>
+            <div className="skill-rounding">
+                <Typography variant="body2" sx={{marginBottom: '.25rem', color: '#444'}}>
+                    スキル発動期待値
+                </Typography>
+                <FormControl size="small" variant="standard">
+                    <Select value={skillRoundingMode} onChange={onSkillRoundingModeChange}>
+                        <MenuItem value="round">四捨五入</MenuItem>
+                        <MenuItem value="ceil">切り上げ</MenuItem>
+                        <MenuItem value="floor">切り捨て</MenuItem>
+                    </Select>
+                </FormControl>
+                <Typography variant="body2" sx={{marginTop: '.25rem', color: '#777'}}>
+                    バー上の ! 個数と編成候補の表示に使います。内部の期待値計算は小数のままです。
+                </Typography>
             </div>
         </section>
 
@@ -120,6 +152,11 @@ const StyledRoot = styled('div')({
             borderRadius: '.4rem',
             padding: '.6rem',
         },
+    },
+    '& .skill-rounding': {
+        marginTop: '.75rem',
+        borderTop: '1px solid #eee',
+        paddingTop: '.65rem',
     },
     '& .stock': {
         display: 'grid',

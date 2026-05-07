@@ -242,16 +242,18 @@ const StrengthBerryIngSkillStrengthView = React.memo(({
         dispatch({type: "closeEnergyDialog"});
     }, [dispatch]);
     const onUseSkillPityChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const useSkillPity = e.target.checked;
         dispatch({type: "changeParameter", payload: {parameter: {
             ...settings,
-            useSkillPity: e.target.checked,
+            useSkillPity,
+            pityProc: useSkillPity,
         }}});
     }, [dispatch, settings]);
 
     const skillPityControl = <div className="skill-pity-control" style={{
         padding: isSmallScreen ? '0 .25rem' : 0,
     }}>
-        <span>天井回数: {pokemonIv.skillPityCeiling}</span>
+        <span>天井回数: {pokemonIv.pityProcHelpCount}</span>
         <span>天井考慮</span>
         <Switch size="small" aria-label="天井を考慮する"
             checked={settings.useSkillPity}

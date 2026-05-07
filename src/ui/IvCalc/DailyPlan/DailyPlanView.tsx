@@ -15,6 +15,7 @@ import PokemonIcon from '../PokemonIcon';
 import { PokemonBoxItem } from '../../../util/PokemonBox';
 import { StrengthParameter } from '../../../util/PokemonStrength';
 import {
+    calculateDailyPlannerCarryoverOptimization,
     calculateDailyPlannerResult,
     dailyPlannerRecipes,
     DailyPlannerIngredientStock,
@@ -74,6 +75,10 @@ const DailyPlanView = React.memo(({items, parameter}: {
     const result = React.useMemo(() => {
         return calculateDailyPlannerResult(items, parameter, mealChoices, stock);
     }, [items, mealChoices, parameter, stock]);
+
+    const carryoverOptimization = React.useMemo(() => {
+        return calculateDailyPlannerCarryoverOptimization(items, parameter, 800);
+    }, [items, parameter]);
 
     const selectedIngredientSupply = React.useMemo(() => {
         const ret: Partial<Record<IngredientName, number>> = {};
@@ -338,6 +343,139 @@ const DailyPlanView = React.memo(({items, parameter}: {
                     </tbody>
                 </table>
             </div>
+        </section>
+
+        <section>
+            <h3>次週持ち越し最適化</h3>
+            <Typography variant="body2" sx={{marginTop: '.35rem', color: '#666'}}>
+                来週の料理ジャンルが未確定でも使いやすいように、食材バッグ800個を3ジャンル共通で効きやすい食材から選びます。効率は「料理エナジー ÷ 必要稼働日数」です。
+            </Typography>
+            {carryoverOptimization.bestRecipes.length === 0 ? (
+                <Typography variant="body2" sx={{marginTop: '.75rem', color: '#888'}}>
+                    編成候補がないため計算できません。
+                </Typography>
+            ) : (
+                <>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                        gap: '.75rem',
+                        marginTop: '.75rem',
+                    }}>
+                        {carryoverOptimization.bestRecipes.map(recipePlan => (
+                            <div key={recipePlan.category} style={{
+                                border: '1px solid #e2e2e2',
+                                borderRadius: '.45rem',
+                                padding: '.65rem',
+                            }}>
+                                <Typography variant="body2" sx={{fontWeight: 700}}>
+                                    {recipePlan.categoryTitle}
+                                </Typography>
+                                <Typography variant="body2" sx={{marginTop: '.2rem'}}>
+                                    {recipePlan.recipe.title}
+                                </Typography>
+                                <Typography variant="body2" sx={{marginTop: '.2rem', color: '#666'}}>
+                                    稼働 {round1(recipePlan.totalWorkDays)}日 / 料理 {formatWithComma(Math.round(recipePlan.mealEnergy))} / 効率 {formatWithComma(Math.round(recipePlan.efficiency))}
+                                </Typography>
+                                <div style={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: '.35rem',
+                                    marginTop: '.45rem',
+                                }}>
+                                    {recipePlan.recipe.ingredients.map(ingredient => (
+                                        <span key={ingredient.name} style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '.2rem',
+                                            border: '1px solid #eee',
+                                            borderRadius: '999px',
+                                            padding: '.1rem .45rem',
+                                            fontSize: '.85rem',
+                                        }}>
+                                            <IngredientIcon name={ingredient.name}/>
+                                            x{ingredient.count}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div style={{
+                                    display: 'grid',
+                                    gap: '.3rem',
+                                    marginTop: '.55rem',
+                                }}>
+                                    {recipePlan.selectedSummaries.map((summary, index) => (
+                                        <div key={summary.item.id} style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'auto 1fr auto',
+                                            alignItems: 'center',
+                                            gap: '.45rem',
+                                        }}>
+                                            <PokemonIcon idForm={summary.item.iv.idForm} size={30}/>
+                                            <Typography variant="body2" sx={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                                                {summary.item.filledNickname(t)}
+                                            </Typography>
+                                            <Typography variant="body2" sx={{color: '#666'}}>
+                                                {round1(recipePlan.workDaysByPokemon[index] ?? 0)}日
+                                            </Typography>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{
+                        border: '1px solid #e2e2e2',
+                        borderRadius: '.45rem',
+                        padding: '.65rem',
+                        marginTop: '.75rem',
+                    }}>
+                        <Typography variant="body2" sx={{fontWeight: 700}}>
+                            推奨持ち越し配分（合計 {carryoverOptimization.capacity}個）
+                        </Typography>
+                        <Typography variant="body2" sx={{marginTop: '.25rem', color: '#666'}}>
+                            各ジャンルの最効率レシピを週21食作る想定で、どのジャンルでもカバー率が落ちにくい食材を優先しています。
+                        </Typography>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                            gap: '.5rem',
+                            marginTop: '.5rem',
+                        }}>
+                            {carryoverOptimization.categoryPlans.map(plan => (
+                                <Typography key={plan.category} variant="body2" sx={{
+                                    border: '1px solid #eee',
+                                    borderRadius: '.35rem',
+                                    padding: '.4rem .5rem',
+                                }}>
+                                    {plan.categoryTitle}: 対応 {plan.capacity}個 / 約{round1(plan.estimatedServings)}食分 / {round1(plan.coverageRate * 100)}%
+                                </Typography>
+                            ))}
+                        </div>
+                        <div style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '.4rem',
+                            marginTop: '.6rem',
+                        }}>
+                            {carryoverOptimization.ingredientPlans.map(plan => (
+                                <span key={plan.ingredientName} style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '.25rem',
+                                    border: '1px solid #e6e6e6',
+                                    borderRadius: '999px',
+                                    padding: '.2rem .5rem',
+                                    background: '#fafafa',
+                                }}>
+                                    <IngredientIcon name={plan.ingredientName}/>
+                                    {plan.count}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </>
+            )}
         </section>
     </StyledRoot>;
 });

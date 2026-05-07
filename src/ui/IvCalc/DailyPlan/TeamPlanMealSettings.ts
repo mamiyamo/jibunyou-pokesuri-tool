@@ -9,8 +9,12 @@ import {
 
 export const teamPlanMealRecipeStorageKey = 'PstTeamPlanMealRecipes';
 export const teamPlanStockStorageKey = 'PstTeamPlanStock';
+export const teamPlanSkillRoundingStorageKey = 'PstTeamPlanSkillRounding';
+export const teamPlanNoMealRecipeName = '__none__';
 const defaultTeamPlanRecipeName = 'しんりょくアボカドグラタン';
 const teamPlanMealSettingsChangedEvent = 'PstTeamPlanMealSettingsChanged';
+
+export type TeamPlanSkillRoundingMode = 'round' | 'ceil' | 'floor';
 
 export function getDefaultTeamPlanStock(): DailyPlannerIngredientStock {
     const ret: DailyPlannerIngredientStock = {};
@@ -28,6 +32,8 @@ export function useTeamPlanMealSettings(): {
     mealChoices: DailyPlannerMealChoice[];
     stock: DailyPlannerIngredientStock;
     setStock: React.Dispatch<React.SetStateAction<DailyPlannerIngredientStock>>;
+    skillRoundingMode: TeamPlanSkillRoundingMode;
+    setSkillRoundingMode: React.Dispatch<React.SetStateAction<TeamPlanSkillRoundingMode>>;
 } {
     const [mealRecipeNames, setMealRecipeNames] = usePersistentState<string[]>(
         teamPlanMealRecipeStorageKey,
@@ -37,6 +43,10 @@ export function useTeamPlanMealSettings(): {
         teamPlanStockStorageKey,
         getDefaultTeamPlanStock,
     );
+    const [skillRoundingMode, setSkillRoundingMode] = usePersistentState<TeamPlanSkillRoundingMode>(
+        teamPlanSkillRoundingStorageKey,
+        () => 'floor',
+    );
     const mealChoices = React.useMemo<DailyPlannerMealChoice[]>(() => {
         const normalizedNames = mealRecipeNames.length >= 3 ? mealRecipeNames.slice(0, 3) : [
             ...mealRecipeNames,
@@ -44,11 +54,21 @@ export function useTeamPlanMealSettings(): {
         ];
         return normalizedNames.map((recipeName, slot) => ({
             slot: slot as 0 | 1 | 2,
-            recipe: getRecipeByName(recipeName) ?? dailyPlannerRecipes[0],
+            recipe: recipeName === teamPlanNoMealRecipeName ?
+                null :
+                getRecipeByName(recipeName) ?? dailyPlannerRecipes[0],
         }));
     }, [mealRecipeNames]);
 
-    return {mealRecipeNames, setMealRecipeNames, mealChoices, stock, setStock};
+    return {
+        mealRecipeNames,
+        setMealRecipeNames,
+        mealChoices,
+        stock,
+        setStock,
+        skillRoundingMode,
+        setSkillRoundingMode,
+    };
 }
 
 function usePersistentState<T>(

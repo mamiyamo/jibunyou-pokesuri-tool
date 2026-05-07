@@ -9,10 +9,11 @@ import PokemonIconData from '../PokemonIconData';
 import {
     calculateDailyTeamAllocationResult,
     DailyPlannerAllocationMember,
+    DailyPlannerAllocationSegment,
 } from '../../../util/DailyPlanner';
 import { formatWithComma, round1 } from '../../../util/NumberUtil';
 import { useTranslation } from 'react-i18next';
-import { useTeamPlanMealSettings } from './TeamPlanMealSettings';
+import { TeamPlanSkillRoundingMode, useTeamPlanMealSettings } from './TeamPlanMealSettings';
 import PokemonIv from '../../../util/PokemonIv';
 
 const timelineColors = [
@@ -29,12 +30,16 @@ const timelineColors = [
 ];
 
 const timeMarkers = [
-    {hour: 4, label: '4:00'},
-    {hour: 7, label: '7:00'},
-    {hour: 12, label: '12:00'},
-    {hour: 18, label: '18:00'},
-    {hour: 22.5, label: '22:30'},
+    {hour: 0, label: '7:00(起床)', kind: 'main'},
+    {hour: 3, label: '10:00', kind: 'sub'},
+    {hour: 6, label: '13:00', kind: 'sub'},
+    {hour: 9, label: '16:00', kind: 'sub'},
+    {hour: 12, label: '19:00', kind: 'sub'},
+    {hour: 15.5, label: '22:30(就寝)', kind: 'main'},
+    {hour: 18, label: '1:00', kind: 'sub'},
+    {hour: 21, label: '4:00', kind: 'sub'},
 ];
+const timelineStartClockHour = 7;
 
 function getMemberColor(idForm: number): string {
     let id = idForm;
@@ -55,7 +60,7 @@ const TeamPlanView = React.memo(({state, dispatch}: {
     dispatch: React.Dispatch<IvAction>;
 }) => {
     const { t } = useTranslation();
-    const {mealChoices, stock} = useTeamPlanMealSettings();
+    const {mealChoices, stock, skillRoundingMode} = useTeamPlanMealSettings();
     const candidates = React.useMemo(() => {
         return state.teamPlanSelectedItemIds
             .map(id => state.box.items.find(item => item.id === id))
@@ -91,6 +96,12 @@ const TeamPlanView = React.memo(({state, dispatch}: {
         }
         return ret;
     }, [result.candidates]);
+    const energyBreakdown = React.useMemo(() => createEnergyBreakdown(result.candidates, {
+        mealEnergy: result.totalMealEnergy,
+        demand: result.demand,
+        stock: result.stock,
+        t,
+    }), [result.candidates, result.demand, result.stock, result.totalMealEnergy, t]);
 
     const onSettingClick = React.useCallback(() => {
         dispatch({type: 'changeLowerTab', payload: {index: 2}});
@@ -109,13 +120,15 @@ const TeamPlanView = React.memo(({state, dispatch}: {
             </header>
 
             <div className="cards">
-                <InfoCard label="稼働" value={`${round1(result.totalTeamHours)}h`}/>
-                <InfoCard label="きのみ数" value={round1(result.totalBerryCount).toString()}/>
-                <InfoCard label="不足" value={result.isDemandSatisfied ? 'なし' : 'あり'}/>
-                <InfoCard label="きのみエナジー" value={formatWithComma(Math.round(result.totalBerryEnergy))}/>
+                <InfoCard label="きのみエナジー" value={formatWithComma(Math.round(result.totalBerryEnergy))}
+                    breakdown={energyBreakdown.berry}/>
+                <InfoCard label="料理エナジー" value={formatWithComma(Math.round(result.totalMealEnergy))}
+                    breakdown={energyBreakdown.meal}/>
+                <InfoCard label="スキルエナジー" value={formatWithComma(Math.round(result.totalSkillEnergy))}
+                    breakdown={energyBreakdown.skill}/>
             </div>
 
-            <TeamTimeline members={result.candidates}/>
+            <TeamTimeline members={result.candidates} skillRoundingMode={skillRoundingMode}/>
 
             <IngredientShortageView
                 demand={result.demand}
@@ -140,7 +153,15 @@ const TeamPlanView = React.memo(({state, dispatch}: {
                             <div>
                                 <strong>{member.item.filledNickname(t)}</strong>
                                 <small>
-                                    稼働 {round1(member.workHours)}h / きのみ {round1(member.berryCount)}個 / エナジー {formatWithComma(Math.round(member.berryEnergy))}
+                                    稼働 {round1(member.workHours)}h / きのみエナジー {formatWithComma(
+                                        Math.round(member.berryEnergy),
+                                    )}（{round1(member.berryCount)}個） / スキル {roundSkillCount(
+                                        member.segments.reduce((sum, segment) => sum + segment.skillTriggerCount, 0),
+                                        skillRoundingMode,
+                                    )}回（日中 {roundSkillCount(
+                                        member.awakeSkillTriggerCount,
+                                        skillRoundingMode,
+                                    )} / 夜間 {roundSkillCount(member.asleepSkillTriggerCount, skillRoundingMode)}）
                                 </small>
                                 <IngredientYield
                                     counts={member.ingredientCounts}
@@ -155,16 +176,37 @@ const TeamPlanView = React.memo(({state, dispatch}: {
     </StyledRoot>;
 });
 
-const InfoCard = React.memo(({label, value}: {
+type EnergyBreakdownItem = {
+    id: number;
+    idForm: number;
+    name: string;
+    value: number;
+};
+
+const InfoCard = React.memo(({label, value, breakdown}: {
     label: string;
     value: string;
+    breakdown: EnergyBreakdownItem[];
 }) => <div>
     <Typography variant="body2" sx={{color: '#666'}}>{label}</Typography>
     <Typography variant="h6" sx={{fontSize: '1.05rem', lineHeight: 1.2}}>{value}</Typography>
+    {breakdown.length > 0 && <details>
+        <summary>内訳</summary>
+        <ul>
+            {breakdown.map(item => (
+                <li key={item.id}>
+                    <PokemonIcon idForm={item.idForm} size={18}/>
+                    <span>{item.name}</span>
+                    <strong>{formatWithComma(Math.round(item.value))}</strong>
+                </li>
+            ))}
+        </ul>
+    </details>}
 </div>);
 
-const TeamTimeline = React.memo(({members}: {
+const TeamTimeline = React.memo(({members, skillRoundingMode}: {
     members: DailyPlannerAllocationMember[];
+    skillRoundingMode: TeamPlanSkillRoundingMode;
 }) => {
     const { t } = useTranslation();
     const rows = React.useMemo(() => createTimelineRows(members, t), [members, t]);
@@ -176,7 +218,7 @@ const TeamTimeline = React.memo(({members}: {
                     {timeMarkers.map(marker => (
                         <b
                             key={marker.hour}
-                            className="time-marker"
+                            className={`time-marker ${marker.kind}-marker ${marker.hour === 0 ? 'start-marker' : ''}`}
                             title={marker.label}
                             style={{left: `${marker.hour / 24 * 100}%`}}
                         >
@@ -187,12 +229,17 @@ const TeamTimeline = React.memo(({members}: {
                         <i key={segmentIndex} title={`${segment.name}: ${round1(segment.hours)}h`} style={{
                             width: `${segment.hours / 24 * 100}%`,
                             background: segment.color,
-                            '--icon-left': `${segment.iconLeftPercent}%`,
-                        } as React.CSSProperties}>
+                        }}>
                             {segment.startHour > 0 && <em className="segment-time">
-                                {formatTimelineHour(segment.startHour)}
+                                {formatTimelineHour(segment.startHour + timelineStartClockHour)}頃
                             </em>}
-                            <span><PokemonIcon idForm={segment.idForm} size={18}/></span>
+                            <span className="segment-icon"><PokemonIcon idForm={segment.idForm} size={18}/></span>
+                            <IngredientSegmentYield counts={segment.ingredientCounts}/>
+                            <SkillTriggerMarkers count={segment.skillTriggerCount}
+                                roundingMode={skillRoundingMode}/>
+                            <span className="energy-overlay">
+                                元気 {Math.round(segment.energyStart)} → {Math.round(segment.energyEnd)}
+                            </span>
                         </i>
                     ))}
                 </div>
@@ -295,13 +342,132 @@ const IngredientYield = React.memo(({counts, randomCounts}: {
     </span>;
 });
 
+const IngredientSegmentYield = React.memo(({counts}: {
+    counts: Partial<Record<IngredientName, number>>;
+}) => {
+    const rows = IngredientNames
+        .map(name => ({name, count: counts[name] ?? 0}))
+        .filter(row => row.count >= 0.05)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 4);
+    if (rows.length === 0) {
+        return <></>;
+    }
+    return <span className="segment-yield">
+        {rows.map(row => (
+            <span key={row.name}>
+                <IngredientIcon name={row.name}/>
+                ×{round1(row.count)}
+            </span>
+        ))}
+    </span>;
+});
+
+const SkillTriggerMarkers = React.memo(({count, roundingMode}: {
+    count: number;
+    roundingMode: TeamPlanSkillRoundingMode;
+}) => {
+    const roundedCount = roundSkillCount(count, roundingMode);
+    if (roundedCount <= 0) {
+        return <></>;
+    }
+    const markerCount = Math.min(12, roundedCount);
+    return <>
+        {Array.from({length: markerCount}, (_, index) => (
+            <b
+                key={index}
+                className="skill-trigger-marker"
+                style={{left: `${(index + 1) / (markerCount + 1) * 100}%`}}
+                title={`スキル発動期待 ${floor1(count)}回（表示 ${roundedCount}回）`}
+            >
+                !
+            </b>
+        ))}
+    </>;
+});
+
+function createEnergyBreakdown(
+    members: DailyPlannerAllocationMember[],
+    options: {
+        mealEnergy: number;
+        demand: Partial<Record<IngredientName, number>>;
+        stock: Partial<Record<IngredientName, number>>;
+        t: (key: string) => string;
+    },
+): {
+    berry: EnergyBreakdownItem[];
+    meal: EnergyBreakdownItem[];
+    skill: EnergyBreakdownItem[];
+} {
+    const createItem = (member: DailyPlannerAllocationMember, value: number): EnergyBreakdownItem => ({
+        id: member.item.id,
+        idForm: member.item.iv.idForm,
+        name: member.item.filledNickname(options.t),
+        value,
+    });
+    const berry = members
+        .map(member => createItem(member, member.berryEnergy))
+        .filter(item => item.value > 0)
+        .sort((a, b) => b.value - a.value);
+    const skill = members
+        .map(member => createItem(member, member.skillEnergy))
+        .filter(item => item.value > 0)
+        .sort((a, b) => b.value - a.value);
+    const mealContributionById = new Map<number, number>();
+    for (const ingredientName of IngredientNames) {
+        const required = Math.max(0, (options.demand[ingredientName] ?? 0) - (options.stock[ingredientName] ?? 0));
+        if (required <= 0) {
+            continue;
+        }
+        const totalSupply = members.reduce((sum, member) => sum + (member.ingredientCounts[ingredientName] ?? 0), 0);
+        if (totalSupply <= 0) {
+            continue;
+        }
+        const cappedSupply = Math.min(required, totalSupply);
+        for (const member of members) {
+            const supply = member.ingredientCounts[ingredientName] ?? 0;
+            if (supply > 0) {
+                mealContributionById.set(
+                    member.item.id,
+                    (mealContributionById.get(member.item.id) ?? 0) + cappedSupply * supply / totalSupply,
+                );
+            }
+        }
+    }
+    const totalContribution = [...mealContributionById.values()].reduce((sum, value) => sum + value, 0);
+    const meal = members
+        .map(member => createItem(member, totalContribution <= 0 ? 0 :
+            options.mealEnergy * (mealContributionById.get(member.item.id) ?? 0) / totalContribution))
+        .filter(item => item.value > 0)
+        .sort((a, b) => b.value - a.value);
+    return {berry, meal, skill};
+}
+
+function roundSkillCount(value: number, mode: TeamPlanSkillRoundingMode): number {
+    if (mode === 'ceil') {
+        return Math.ceil(value);
+    }
+    if (mode === 'round') {
+        return Math.round(value);
+    }
+    return Math.floor(value);
+}
+
+function floor1(value: number): number {
+    return Math.floor(value * 10) / 10;
+}
+
 type TimelineSegment = {
     name: string;
     idForm: number;
     startHour: number;
     hours: number;
     color: string;
-    iconLeftPercent: number;
+    ingredientCounts: Partial<Record<IngredientName, number>>;
+    energyStart: number;
+    energyEnd: number;
+    skillTriggerCount: number;
+    isNight: boolean;
 };
 
 function formatTimelineHour(hour: number): string {
@@ -311,21 +477,76 @@ function formatTimelineHour(hour: number): string {
     return `${h}:${m.toString().padStart(2, '0')}`;
 }
 
-function getIconLeftPercent(startHour: number, hours: number): number {
-    const baseLeft = Math.min(88, Math.max(12, 240 / Math.max(hours, 0.1)));
-    const overlappedMarker = timeMarkers.find(marker =>
-        marker.hour > startHour && marker.hour < startHour + hours &&
-        Math.abs((marker.hour - startHour) / hours * 100 - baseLeft) < 16);
-    if (overlappedMarker === undefined) {
-        return baseLeft;
+function mergeIngredientCounts(
+    a: Partial<Record<IngredientName, number>>,
+    b: Partial<Record<IngredientName, number>>,
+): Partial<Record<IngredientName, number>> {
+    const ret = {...a};
+    for (const ingredientName of IngredientNames) {
+        const value = b[ingredientName] ?? 0;
+        if (value > 0) {
+            ret[ingredientName] = (ret[ingredientName] ?? 0) + value;
+        }
     }
-    const markerPercent = (overlappedMarker.hour - startHour) / hours * 100;
-    return markerPercent <= baseLeft ? Math.min(88, markerPercent + 18) : Math.max(12, markerPercent - 18);
+    return ret;
+}
+
+function mergeContinuousSegments(row: TimelineSegment[]): TimelineSegment[] {
+    const ret: TimelineSegment[] = [];
+    for (const segment of row) {
+        const last = ret[ret.length - 1];
+        if (last !== undefined &&
+            last.idForm === segment.idForm &&
+            last.isNight === segment.isNight &&
+            Math.abs(last.startHour + last.hours - segment.startHour) < 1e-6
+        ) {
+            last.hours += segment.hours;
+            last.ingredientCounts = mergeIngredientCounts(last.ingredientCounts, segment.ingredientCounts);
+            last.energyEnd = segment.energyEnd;
+            last.skillTriggerCount += segment.skillTriggerCount;
+            continue;
+        }
+        ret.push({...segment});
+    }
+    return ret;
+}
+
+function createTimelineSegment(
+    member: DailyPlannerAllocationMember,
+    segment: DailyPlannerAllocationSegment,
+    t: (key: string) => string,
+): TimelineSegment {
+    const color = getMemberColor(member.item.iv.idForm);
+    const hours = segment.endHour - segment.startHour;
+    return {
+        name: member.item.filledNickname(t),
+        idForm: member.item.iv.idForm,
+        startHour: segment.startHour,
+        hours,
+        color,
+        ingredientCounts: segment.ingredientCounts,
+        energyStart: segment.energyStart,
+        energyEnd: segment.energyEnd,
+        skillTriggerCount: segment.skillTriggerCount,
+        isNight: segment.isNight,
+    };
 }
 
 function createTimelineRows(members: DailyPlannerAllocationMember[],
     t: (key: string) => string): TimelineSegment[][] {
     const rows: TimelineSegment[][] = [[], [], [], [], []];
+    if (members.some(member => member.segments.length > 0)) {
+        for (const member of members) {
+            for (const segment of member.segments) {
+                rows[segment.rowIndex]?.push(createTimelineSegment(member, segment, t));
+            }
+        }
+        for (const row of rows) {
+            row.sort((a, b) => a.startHour - b.startHour);
+        }
+        return rows.map(mergeContinuousSegments);
+    }
+
     const rowHours = [0, 0, 0, 0, 0];
     const segments = members.map(member => {
         const color = getMemberColor(member.item.iv.idForm);
@@ -335,7 +556,11 @@ function createTimelineRows(members: DailyPlannerAllocationMember[],
             startHour: 0,
             hours: member.totalHours,
             color,
-            iconLeftPercent: 50,
+            ingredientCounts: member.ingredientCounts,
+            energyStart: 100,
+            energyEnd: Math.max(0, 100 - member.totalHours * 6),
+            skillTriggerCount: 0,
+            isNight: false,
         };
     }).filter(segment => segment.hours > 0);
 
@@ -351,7 +576,10 @@ function createTimelineRows(members: DailyPlannerAllocationMember[],
                 ...segment,
                 startHour: rowHours[rowIndex],
                 hours: allocated,
-                iconLeftPercent: getIconLeftPercent(rowHours[rowIndex], allocated),
+                energyStart: 100,
+                energyEnd: Math.max(0, 100 - allocated * 6),
+                skillTriggerCount: 0,
+                isNight: false,
             });
             rowHours[rowIndex] += allocated;
             rest -= allocated;
@@ -379,19 +607,55 @@ const StyledRoot = styled('div')({
     },
     '& .cards': {
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
         gap: '.45rem',
         marginTop: '.55rem',
         '& > div': {
             border: '1px solid #e6e6e6',
             borderRadius: '.4rem',
             padding: '.45rem .55rem',
+            '& > details': {
+                marginTop: '.35rem',
+                '& > summary': {
+                    width: 'fit-content',
+                    color: '#666',
+                    fontSize: '.72rem',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                },
+                '& > ul': {
+                    display: 'grid',
+                    gap: '.18rem',
+                    margin: '.25rem 0 0',
+                    padding: 0,
+                    listStyle: 'none',
+                    maxHeight: '7rem',
+                    overflow: 'auto',
+                    '& > li': {
+                        display: 'grid',
+                        gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+                        gap: '.25rem',
+                        alignItems: 'center',
+                        color: '#555',
+                        fontSize: '.72rem',
+                        '& > span': {
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                        },
+                        '& > strong': {
+                            color: '#333',
+                            fontWeight: 600,
+                        },
+                    },
+                },
+            },
         },
     },
     '& .timeline': {
         display: 'grid',
-        gap: '12px',
-        marginTop: '.65rem',
+        gap: '16px',
+        marginTop: '.85rem',
         paddingBottom: '.55rem',
     },
     '& .timeline-row': {
@@ -435,6 +699,19 @@ const StyledRoot = styled('div')({
                     lineHeight: 1,
                     whiteSpace: 'nowrap',
                 },
+                '&.start-marker > em': {
+                    left: 0,
+                    transform: 'translate(0, 100%)',
+                },
+                '&.sub-marker': {
+                    width: '1px',
+                    background: 'rgba(30, 50, 80, .22)',
+                    boxShadow: 'none',
+                    '& > em': {
+                        color: '#889',
+                        background: 'rgba(255,255,255,.72)',
+                    },
+                },
             },
             '& > i': {
                 display: 'flex',
@@ -447,9 +724,10 @@ const StyledRoot = styled('div')({
                 '& > .segment-time': {
                     position: 'absolute',
                     left: 0,
-                    top: 0,
+                    top: '-13px',
+                    zIndex: 2,
                     padding: '0 2px',
-                    borderRadius: '0 0 3px 0',
+                    borderRadius: '3px',
                     background: 'rgba(255,255,255,.72)',
                     color: '#555',
                     fontSize: '.58rem',
@@ -457,18 +735,82 @@ const StyledRoot = styled('div')({
                     lineHeight: 1.05,
                     whiteSpace: 'nowrap',
                 },
-                '& > span': {
+                '& > .segment-icon': {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'absolute',
-                    left: 'var(--icon-left, 50%)',
-                    transform: 'translateX(-50%)',
+                    zIndex: 3,
+                    left: '3px',
                     width: '20px',
                     height: '20px',
                     borderRadius: '50%',
                     background: 'rgba(255,255,255,.78)',
                     boxShadow: '0 0 0 1px rgba(0,0,0,.12)',
+                },
+                '& > .segment-yield': {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '.15rem',
+                    position: 'absolute',
+                    zIndex: 3,
+                    left: '26px',
+                    maxWidth: 'calc(100% - 28px)',
+                    overflow: 'hidden',
+                    color: '#334',
+                    fontSize: '.58rem',
+                    fontStyle: 'normal',
+                    whiteSpace: 'nowrap',
+                    textShadow: '0 1px 0 rgba(255,255,255,.65)',
+                    '& > span': {
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '1px',
+                    },
+                    '& svg': {
+                        width: '.72rem',
+                        height: '.72rem',
+                    },
+                },
+                '& > .skill-trigger-marker': {
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'absolute',
+                    zIndex: 4,
+                    top: '2px',
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '999px',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(255,255,255,.92)',
+                    color: '#d86b00',
+                    fontSize: '.75rem',
+                    fontStyle: 'normal',
+                    fontWeight: 800,
+                    lineHeight: 1,
+                    boxShadow: '0 0 0 1px rgba(42,75,120,.35), 0 1px 4px rgba(0,0,0,.16)',
+                    pointerEvents: 'auto',
+                },
+                '& > .energy-overlay': {
+                    display: 'none',
+                    position: 'absolute',
+                    zIndex: 8,
+                    left: '50%',
+                    top: '-30px',
+                    transform: 'translateX(-50%)',
+                    padding: '3px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(28, 34, 46, .92)',
+                    color: 'white',
+                    fontSize: '.68rem',
+                    lineHeight: 1,
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    boxShadow: '0 2px 8px rgba(0,0,0,.2)',
+                },
+                '&:hover > .energy-overlay': {
+                    display: 'block',
                 },
             },
         },

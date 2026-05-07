@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { PokemonBoxItem } from './PokemonBox';
 import PokemonIv from './PokemonIv';
 import {
+    calculateDailyPlannerCarryoverOptimization,
     calculateDailyPlannerResult,
     calculatePokemonDailySummary,
     calculateDailyTeamAllocationResult,
@@ -133,5 +134,43 @@ describe('DailyPlanner', () => {
         expect(withActualBonus.candidates[0].berryEnergy).toBeGreaterThan(
             withoutActualBonus.candidates[0].berryEnergy,
         );
+    });
+
+    test('team allocation keeps night team fixed when asleep tap frequency is none', () => {
+        const items = [
+            'Raichu',
+            'Mawile',
+            'Bulbasaur',
+            'Charizard',
+            'Blastoise',
+            'Venusaur',
+        ].map(name => new PokemonBoxItem(new PokemonIv({ pokemonName: name, level: 50 })));
+        const parameter = createStrengthParameter({tapFrequencyAsleep: 0});
+        const result = calculateDailyTeamAllocationResult(items, parameter, getDefaultDailyPlannerMeals(), {});
+
+        for (const member of result.candidates) {
+            for (const segment of member.segments) {
+                expect(segment.startHour > 15.5 && segment.startHour < 24).toBe(false);
+                expect(segment.endHour > 15.5 && segment.endHour < 24).toBe(false);
+            }
+        }
+    });
+
+    test('carryover optimization returns category winners and fills bag capacity', () => {
+        const items = [
+            'Raichu',
+            'Mawile',
+            'Bulbasaur',
+            'Charizard',
+            'Blastoise',
+            'Venusaur',
+        ].map(name => new PokemonBoxItem(new PokemonIv({ pokemonName: name, level: 50 })));
+        const parameter = createStrengthParameter({});
+        const result = calculateDailyPlannerCarryoverOptimization(items, parameter, 800);
+
+        expect(result.bestRecipes).toHaveLength(3);
+        expect(result.categoryPlans).toHaveLength(3);
+        expect(result.ingredientPlans.reduce((sum, plan) => sum + plan.count, 0)).toBe(800);
+        expect(result.bestRecipes.every(plan => plan.efficiency > 0)).toBe(true);
     });
 });
