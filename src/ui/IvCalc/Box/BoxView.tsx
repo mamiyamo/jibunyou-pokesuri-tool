@@ -1,29 +1,45 @@
-import React from 'react';
-import { styled } from '@mui/system';
-import { PokemonBoxItem } from '../../../util/PokemonBox';
-import BoxFilterConfig from '../../../util/PokemonBoxFilter';
-import { sortPokemonItems, BoxSortType, BoxSortConfig, loadBoxSortConfig } from '../../../util/PokemonBoxSort';
-import PokemonIcon from '../PokemonIcon';
-import { IvAction } from '../IvState';
-import PokemonFilterFooter, { PokemonFilterFooterConfig } from '../PokemonFilterFooter';
-import BoxFilterDialog from './BoxFilterDialog';
-import BoxSortConfigFooter from './BoxSortConfigFooter';
-import CandyDialog from '../CandyDialog';
-import { shareIv } from '../ShareUtil';
-import PokemonIv from '../../../util/PokemonIv';
-import { StrengthParameter } from '../../../util/PokemonStrength';
-import { Button, ButtonBase, Fab, IconButton, ListItemIcon,
-    Menu, MenuItem, MenuList }  from '@mui/material';
-import CandyIcon from '../../Resources/CandyIcon';
-import AddIcon from '@mui/icons-material/Add';
-import CloseIcon from '@mui/icons-material/Close';
-import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
-import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import IosShareIcon from '@mui/icons-material/IosShare';
-import MoreIcon from '@mui/icons-material/MoreVert';
-import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
-import { useTranslation } from 'react-i18next';
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
+import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import IosShareIcon from "@mui/icons-material/IosShare";
+import MoreIcon from "@mui/icons-material/MoreVert";
+import RemoveCircleOutlineOutlinedIcon from "@mui/icons-material/RemoveCircleOutlineOutlined";
+import {
+	Button,
+	ButtonBase,
+	Fab,
+	IconButton,
+	ListItemIcon,
+	Menu,
+	MenuItem,
+	MenuList,
+} from "@mui/material";
+import { styled } from "@mui/system";
+import React from "react";
+import { useTranslation } from "react-i18next";
+import type { PokemonBoxItem } from "../../../util/PokemonBox";
+import BoxFilterConfig from "../../../util/PokemonBoxFilter";
+import {
+	type BoxSortConfig,
+	type BoxSortType,
+	loadBoxSortConfig,
+	sortPokemonItems,
+} from "../../../util/PokemonBoxSort";
+import type PokemonIv from "../../../util/PokemonIv";
+import type { StrengthParameter } from "../../../util/PokemonStrength";
+import { useLongPress } from "../../common/Hook";
+import CandyIcon from "../../Resources/CandyIcon";
+import CandyDialog from "../CandyDialog";
+import type { IvAction } from "../IvState";
+import PokemonFilterFooter, {
+	type PokemonFilterFooterConfig,
+} from "../PokemonFilterFooter";
+import PokemonIcon from "../PokemonIcon";
+import { shareIv } from "../ShareUtil";
+import BoxFilterDialog from "./BoxFilterDialog";
+import BoxSortConfigFooter from "./BoxSortConfigFooter";
 
 const BOX_SORT_CONFIG_CHANGED_EVENT = 'PstPokemonBoxSortConfigChanged';
 
@@ -299,58 +315,6 @@ const StyledBoxLargeItem = styled('div')({
         },
     },
 });
-
-function useLongPress(
-    callback: () => void,
-    ms: number
-) {
-    const timeout = React.useRef<NodeJS.Timeout|null>(null);
-    const ref = React.useRef<HTMLButtonElement|null>(null);
-
-    const touchStart = React.useCallback(() => {
-        timeout.current = setTimeout(callback, ms);
-    }, [callback, ms]);
-    const touchEnd = React.useCallback(() => {
-        if (timeout.current) {
-            clearTimeout(timeout.current);
-        }
-        timeout.current = null;
-    }, []);
-
-    const mouseEnd = React.useCallback(() => {
-        document.removeEventListener("mousemove", mouseEnd);
-        document.removeEventListener("mouseup", mouseEnd);
-        if (timeout.current) {
-            clearTimeout(timeout.current);
-        }
-        timeout.current = null;
-    }, []);
-    const mouseStart = React.useCallback(() => {
-        if (timeout.current !== null) { return; }
-        timeout.current = setTimeout(callback, ms);
-        document.addEventListener("mousemove", mouseEnd);
-        document.addEventListener("mouseup", mouseEnd);
-    }, [callback, ms, mouseEnd]);
-
-    React.useEffect(() => {
-        if (ref.current === null) {
-            return () => {};
-        }
-        const elm = ref.current;
-        elm.addEventListener("touchstart", touchStart);
-        elm.addEventListener("mousedown", mouseStart);
-        elm.addEventListener("touchmove", touchEnd);
-        elm.addEventListener("touchend", touchEnd);
-        return () => {
-            elm.removeEventListener("touchstart", touchStart);
-            elm.removeEventListener("mousedown", mouseStart);
-            elm.removeEventListener("touchmove", touchEnd);
-            elm.removeEventListener("touchend", touchEnd);
-        }
-    }, [mouseStart, touchStart, touchEnd]);
-    return ref;
-}
-
 /** Number of days after which the alert message will be shown again. */
 const alertDaysThreshold = 30;
 /**
