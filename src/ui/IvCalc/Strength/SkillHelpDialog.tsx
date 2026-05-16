@@ -4,7 +4,7 @@ import { getEventBonus } from '../../../data/events';
 import Nature from '../../../util/Nature';
 import { PokemonType } from '../../../data/pokemons';
 import { NoTap, whistlePeriod } from '../../../util/Energy';
-import { round1, round2, formatNice, formatWithComma } from '../../../util/NumberUtil';
+import { clamp, round1, round2, formatNice, formatWithComma } from '../../../util/NumberUtil';
 import PokemonIv from '../../../util/PokemonIv';
 import PokemonStrength, {
     StrengthResult, calculateBerryBurstStrength, getBerryBurstTeam,
@@ -643,7 +643,8 @@ function getBerryBurstConfigHtml(strength: PokemonStrength,
     const auto = settings.berryBurstTeam.auto;
     const burstTeam = getBerryBurstTeam(iv, settings);
     const maxSpecies = burstTeam.filter(x => x.type === iv.pokemon.type).length + 1;
-    const species = auto ? maxSpecies : settings.berryBurstTeam.species;
+    const minSpecies = maxSpecies >= 2 ? 2 : 1;
+    const species = auto ? maxSpecies : clamp(minSpecies, settings.berryBurstTeam.species, maxSpecies);
 
     const onBerryBurstAutoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         dispatch({type: "changeParameter", payload: {parameter: {
@@ -721,7 +722,7 @@ function getBerryBurstConfigHtml(strength: PokemonStrength,
                 <SelectEx value={species.toString()}
                     sx={{padding: '0 0.5rem'}}
                     onChange={onBerryBurstSpeciesChange}>
-                    <MenuItem dense value="1">1</MenuItem>
+                    {minSpecies === 1 && <MenuItem dense value="1">1</MenuItem>}
                     {maxSpecies > 1 && <MenuItem dense value="2">2</MenuItem>}
                     {maxSpecies > 2 && <MenuItem dense value="3">3</MenuItem>}
                     {maxSpecies > 3 && <MenuItem dense value="4">4</MenuItem>}

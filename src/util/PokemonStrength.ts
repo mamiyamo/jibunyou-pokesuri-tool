@@ -1346,6 +1346,9 @@ export function loadStrengthParameter(): StrengthParameter {
         if (typeof(json.berryBurstTeam.auto) === "boolean") {
             ret.berryBurstTeam.auto = json.berryBurstTeam.auto;
         }
+        if (typeof(json.berryBurstTeam.species) === "number") {
+            ret.berryBurstTeam.species = json.berryBurstTeam.species;
+        }
         if (Array.isArray(json.berryBurstTeam.members)) {
             for (let i = 0; i < 4; i++) {
                 if (typeof(json.berryBurstTeam.members[i]) !== "object") {
