@@ -1,12 +1,12 @@
 import { styled } from '@mui/system';
 import Rank from '../../util/Rank';
 import fields, { FieldData, MAX_STRENGTH } from '../../data/fields';
-import { getDrowsyBonus } from '../../data/events';
+import { getDrowsyBonus, isInLatiosEvent } from '../../data/events';
 import React, { useCallback, useState } from 'react';
 import { Button, Checkbox, Collapse, FormControlLabel, InputAdornment, MenuItem,
     TextField } from '@mui/material';
 import TrackingPanel from './TrackingPanel';
-import { InputAreaData } from './ResearchCalcAppConfig';
+import { InputAreaData, updateActualBonus } from './ResearchCalcAppConfig';
 import ArrowButton from '../common/ArrowButton';
 import SliderEx from '../common/SliderEx';
 import NumericInput from '../common/NumericInput';
@@ -65,6 +65,14 @@ function InputArea({data, onChange: onchange}:InputAreaProps) {
         onchange?.({bonus});
     }, [onchange]);
 
+    const onLatiosChange = useCallback((isLatiosOnTeam: boolean) => {
+        onchange?.({isLatiosOnTeam});
+    }, [onchange]);
+
+    const onLatiasChange = useCallback((isLatiasOnTeam: boolean) => {
+        onchange?.({isLatiasOnTeam});
+    }, [onchange]);
+
     const onSecondSleepChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const secondSleep = e.target.checked;
         onchange?.({secondSleep});
@@ -99,10 +107,14 @@ function InputArea({data, onChange: onchange}:InputAreaProps) {
             <div>
                 <EventBonusTextField value={data.bonus} onChange={onBonusChange}/>
             </div>
+            <TeamCheckbox type="Latios" bonus={data.bonus}
+                value={data.isLatiosOnTeam} onChange={onLatiosChange}/>
+            <TeamCheckbox type="Latias" bonus={data.bonus}
+                value={data.isLatiasOnTeam} onChange={onLatiasChange}/>
             <SecondSleepCheckbox value={data.secondSleep} onChange={onSecondSleepChange}/>
         </div>
     </StyledForm>
-    <TrackingPanel data={data} onChange={onchange}/>
+    <TrackingPanel data={updateActualBonus(data)} onChange={onchange}/>
     </>);
 }
 
@@ -291,6 +303,42 @@ const EventBonusTextField = React.memo(({value, onChange}:EventBonusProps) => {
             </Button>
         </Collapse>
     </>);
+});
+
+const TeamCheckbox = React.memo(({
+    bonus, type, value, onChange,
+}: {
+    bonus: number;
+    type: "Latios" | "Latias";
+    value: boolean;
+    onChange: (value: boolean) => void;
+}) => {
+    const { t } = useTranslation();
+    const [open, setOpen] = React.useState(isInLatiosEvent());
+    const onChangeHandler = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange(e.target.checked);
+    }, [onChange]);
+
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            const inEvent = isInLatiosEvent();
+            if (inEvent !== open) {
+                setOpen(inEvent);
+                if (!inEvent) {
+                    onChange(false);
+                }
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [onChange, open]);
+
+    return (
+        <Collapse in={open && bonus === 1}>
+            <FormControlLabel sx={{marginRight: 0}}
+                control={<Checkbox checked={value} onChange={onChangeHandler}/>}
+                label={t('pokemon on your team', {pokemon: t(`pokemons.${type}`)})}/>
+        </Collapse>
+    );
 });
 
 interface SecondSleepCheckboxProps {

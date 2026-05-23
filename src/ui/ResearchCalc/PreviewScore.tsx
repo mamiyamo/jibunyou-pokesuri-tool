@@ -5,7 +5,7 @@ import { InputAreaData } from './ResearchCalcAppConfig'
 import Rank from '../../util/Rank';
 import { PokemonCount } from '../../util/PokemonCount';
 import SleepScore from './SleepScore'
-import { MultipleScoreRange, ScoreRange } from './Score';
+import { ScoreRange, getScoreRange } from './Score';
 import fields from '../../data/fields';
 import SpawnCountLabel from './SpawnCountLabel'
 import { BetterSecondSleepData } from './BetterSecondSleepDialog';
@@ -20,9 +20,6 @@ interface PreviewScoreProps {
     /** form data */
     data: InputAreaData;
 
-    /** score range */
-    ranges:MultipleScoreRange;
-
     /** second sleep detail is clicked */
     onSecondSleepDetailClick: (data:BetterSecondSleepData)=>void;
 }
@@ -30,7 +27,7 @@ interface PreviewScoreProps {
 export default function PreviewScore(props:PreviewScoreProps) {
     const { t }  = useTranslation();
 
-    const ranges = props.ranges;
+    const ranges = getScoreRange(props.count, props.data);
     const range = ranges.firstSleep;
     const firstElement = renderRange(range, props.data, t);
     if (!range.canGet || range.tooMuch) {

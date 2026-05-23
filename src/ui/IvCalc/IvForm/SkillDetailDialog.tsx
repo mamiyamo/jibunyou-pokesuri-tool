@@ -485,6 +485,7 @@ const ConfigForm = React.memo(({value, config, onConfigChange}: {
 
     let speciesSection: React.ReactNode = null;
     if (skill === 'Energy for Everyone S (Lunar Blessing)' ||
+        skill === 'Berry Burst (Draco Meteor)' ||
         skill === 'Helper Boost'
     ) {
         speciesSection = <section>
@@ -503,6 +504,18 @@ const ConfigForm = React.memo(({value, config, onConfigChange}: {
     if (skill === 'Helper Boost') {
         return <StyledConfigForm>
             {speciesSection}
+        </StyledConfigForm>
+    }
+
+    if (skill === 'Berry Burst (Draco Meteor)') {
+        return <StyledConfigForm>
+            {speciesSection}
+            <section>
+                <label>{t('pokemon on your team', {
+                    pokemon: t('pokemons.Latias'),
+                })}:</label>
+                <Switch checked={config.latiTwins} onChange={onLatiTwinsChange}/>
+            </section>
         </StyledConfigForm>
     }
 

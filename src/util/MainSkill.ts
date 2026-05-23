@@ -27,6 +27,7 @@ export type MainSkillName = "Ingredient Magnet S" |
     "Helper Boost" |
     "Berry Burst" |
     "Berry Burst (Disguise)" |
+    "Berry Burst (Draco Meteor)" |
     "Skill Copy" |
     "Skill Copy (Transform)" |
     "Skill Copy (Mimic)" |
@@ -257,6 +258,9 @@ export function getSkillSubValue(skill: MainSkillName, skillLevel: number,
         return [1, 2, 2, 3, 4, 4][skillLevel - 1];
     }
 
+    if (skill === "Berry Burst (Draco Meteor)") {
+        return [0, 0, 0, 0, 0, 0][skillLevel - 1];
+    }
     if (skill.startsWith("Berry Burst")) {
         // Get the number of berries gathered from other members
         return [1, 2, 2, 3, 4, 5][skillLevel - 1];

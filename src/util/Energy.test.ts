@@ -35,20 +35,20 @@ describe('Energy', () => {
         expect(result.events).toEqual([
             { minutes: 0, type: 'wake', energyBefore: 0, energyAfter: 100, isSnacking: false, isInPeriod: true },
             { minutes: 120, type: 'cook', energyBefore: 88, energyAfter: 89, isSnacking: false, isInPeriod: true },
-            { minutes: 360, type: 'cook', energyBefore: 65, energyAfter: 67, isSnacking: false, isInPeriod: true },
-            { minutes: 720, type: 'cook', energyBefore: 31, energyAfter: 35, isSnacking: false, isInPeriod: true },
-            { minutes: 930, type: 'sleep', energyBefore: 14, energyAfter: 14, isSnacking: false, isInPeriod: true },
-            { minutes: 1070, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: true },
+            { minutes: 360, type: 'cook', energyBefore: 65, energyAfter: 68, isSnacking: false, isInPeriod: true },
+            { minutes: 720, type: 'cook', energyBefore: 32, energyAfter: 38, isSnacking: false, isInPeriod: true },
+            { minutes: 930, type: 'sleep', energyBefore: 17, energyAfter: 17, isSnacking: false, isInPeriod: true },
+            { minutes: 1100, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: true },
             { minutes: 1440, type: 'wake', energyBefore: 0, energyAfter: 100, isSnacking: false, isInPeriod: true },
         ]);
 
         expect(result.efficiencies).toEqual([
             {start: 0, end: 210, efficiency: 2.222, frequencyRate: 0.45, isAwake: true, isSnacking: false, isInPeriod: true},
-            {start: 210, end: 430, efficiency: 1.923, frequencyRate: 0.52, isAwake: true, isSnacking: false, isInPeriod: true},
-            {start: 430, end: 630, efficiency: 1.724, frequencyRate: 0.58, isAwake: true, isSnacking: false, isInPeriod: true},
-            {start: 630, end: 930, efficiency: 1.515, frequencyRate: 0.66, isAwake: true, isSnacking: false, isInPeriod: true},
-            {start: 930, end: 1060, efficiency: 1.515, frequencyRate: 0.66, isAwake: false, isSnacking: false, isInPeriod: true},
-            {start: 1060, end: 1440, efficiency: 1, frequencyRate: 1, isAwake: false, isSnacking: false, isInPeriod: true},
+            {start: 210, end: 440, efficiency: 1.923, frequencyRate: 0.52, isAwake: true, isSnacking: false, isInPeriod: true},
+            {start: 440, end: 640, efficiency: 1.724, frequencyRate: 0.58, isAwake: true, isSnacking: false, isInPeriod: true},
+            {start: 640, end: 930, efficiency: 1.515, frequencyRate: 0.66, isAwake: true, isSnacking: false, isInPeriod: true},
+            {start: 930, end: 1090, efficiency: 1.515, frequencyRate: 0.66, isAwake: false, isSnacking: false, isInPeriod: true},
+            {start: 1090, end: 1440, efficiency: 1, frequencyRate: 1, isAwake: false, isSnacking: false, isInPeriod: true},
         ]);
     });
 
@@ -64,21 +64,21 @@ describe('Energy', () => {
             { minutes: 0, type: 'wake', energyBefore: 0, energyAfter: 100, isSnacking: false, isInPeriod: true },
             { minutes: 120, type: 'cook', energyBefore: 88, energyAfter: 89, isSnacking: false, isInPeriod: true },
             { minutes: 180, type: 'empty', energyBefore: 83, energyAfter: 83, isSnacking: false, isInPeriod: false },
-            { minutes: 360, type: 'cook', energyBefore: 65, energyAfter: 67, isSnacking: false, isInPeriod: false },
-            { minutes: 720, type: 'cook', energyBefore: 31, energyAfter: 35, isSnacking: false, isInPeriod: false },
-            { minutes: 930, type: 'sleep', energyBefore: 14, energyAfter: 14, isSnacking: false, isInPeriod: false },
-            { minutes: 1070, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: false },
+            { minutes: 360, type: 'cook', energyBefore: 65, energyAfter: 68, isSnacking: false, isInPeriod: false },
+            { minutes: 720, type: 'cook', energyBefore: 32, energyAfter: 38, isSnacking: false, isInPeriod: false },
+            { minutes: 930, type: 'sleep', energyBefore: 17, energyAfter: 17, isSnacking: false, isInPeriod: false },
+            { minutes: 1100, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: false },
             { minutes: 1440, type: 'wake', energyBefore: 0, energyAfter: 100, isSnacking: false, isInPeriod: false },
         ]);
 
         expect(result.efficiencies).toEqual([
             {start: 0, end: 180, efficiency: 2.222, frequencyRate: 0.45, isAwake: true, isSnacking: false, isInPeriod: true},
             {start: 180, end: 210, efficiency: 2.222, frequencyRate: 0.45, isAwake: true, isSnacking: false, isInPeriod: false},
-            {start: 210, end: 430, efficiency: 1.923, frequencyRate: 0.52, isAwake: true, isSnacking: false, isInPeriod: false},
-            {start: 430, end: 630, efficiency: 1.724, frequencyRate: 0.58, isAwake: true, isSnacking: false, isInPeriod: false},
-            {start: 630, end: 930, efficiency: 1.515, frequencyRate: 0.66, isAwake: true, isSnacking: false, isInPeriod: false},
-            {start: 930, end: 1060, efficiency: 1.515, frequencyRate: 0.66, isAwake: false, isSnacking: false, isInPeriod: false},
-            {start: 1060, end: 1440, efficiency: 1, frequencyRate: 1, isAwake: false, isSnacking: false, isInPeriod: false},
+            {start: 210, end: 440, efficiency: 1.923, frequencyRate: 0.52, isAwake: true, isSnacking: false, isInPeriod: false},
+            {start: 440, end: 640, efficiency: 1.724, frequencyRate: 0.58, isAwake: true, isSnacking: false, isInPeriod: false},
+            {start: 640, end: 930, efficiency: 1.515, frequencyRate: 0.66, isAwake: true, isSnacking: false, isInPeriod: false},
+            {start: 930, end: 1090, efficiency: 1.515, frequencyRate: 0.66, isAwake: false, isSnacking: false, isInPeriod: false},
+            {start: 1090, end: 1440, efficiency: 1, frequencyRate: 1, isAwake: false, isSnacking: false, isInPeriod: false},
         ]);
     });
 
@@ -92,13 +92,13 @@ describe('Energy', () => {
 
         expect(result.events).toEqual([
             { minutes: 0, type: 'wake', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: true },
-            { minutes: 120, type: 'cook', energyBefore: 0, energyAfter: 5, isSnacking: false, isInPeriod: true },
-            { minutes: 170, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: true },
-            { minutes: 360, type: 'cook', energyBefore: 0, energyAfter: 5, isSnacking: false, isInPeriod: true },
-            { minutes: 410, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: true },
+            { minutes: 120, type: 'cook', energyBefore: 0, energyAfter: 9, isSnacking: false, isInPeriod: true },
+            { minutes: 210, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: true },
+            { minutes: 360, type: 'cook', energyBefore: 0, energyAfter: 9, isSnacking: false, isInPeriod: true },
+            { minutes: 450, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: true },
             { minutes: 480, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: false },
-            { minutes: 720, type: 'cook', energyBefore: 0, energyAfter: 5, isSnacking: false, isInPeriod: false },
-            { minutes: 770, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: false },
+            { minutes: 720, type: 'cook', energyBefore: 0, energyAfter: 9, isSnacking: false, isInPeriod: false },
+            { minutes: 810, type: 'empty', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: false },
             { minutes: 1440, type: 'sleep', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: false },
             { minutes: 1440, type: 'wake', energyBefore: 0, energyAfter: 0, isSnacking: false, isInPeriod: false },
         ]);
@@ -171,9 +171,9 @@ describe('Energy', () => {
         const result = energy.calculate(createParam({e4eCount: 2}));
 
         expect(result.averageEfficiency).toEqual({
-            total: 1.812,
-            awake: 1.987,
-            asleep: 1.493,
+            total: 1.819,
+            awake: 1.989,
+            asleep: 1.507,
         });
     });
 
@@ -195,23 +195,23 @@ describe('Energy', () => {
         const result = energy.calculate(createParam({e4eCount: 0, sleepScore: 0}));
 
         expect(result.averageEfficiency).toEqual({
-            total: 1.043,
-            awake: 1.043,
+            total: 1.086,
+            awake: 1.086,
             asleep: 1,
         });
 
         expect(result.events[1].type).toBe('cook');
-        expect(result.events[1].energyAfter).toBe(5);
+        expect(result.events[1].energyAfter).toBe(9);
         expect(result.events[1].minutes).toBe(120);
         expect(result.events[2].type).toBe('empty');
         expect(result.events[2].energyBefore).toBe(0);
-        expect(result.events[2].minutes).toBe(170);
+        expect(result.events[2].minutes).toBe(210);
 
         expect(result.events[3].type).toBe('cook');
-        expect(result.events[3].energyAfter).toBe(5);
+        expect(result.events[3].energyAfter).toBe(9);
         expect(result.events[3].minutes).toBe(360);
         expect(result.events[4].type).toBe('empty');
         expect(result.events[4].energyBefore).toBe(0);
-        expect(result.events[4].minutes).toBe(410);
+        expect(result.events[4].minutes).toBe(450);
     });
 });

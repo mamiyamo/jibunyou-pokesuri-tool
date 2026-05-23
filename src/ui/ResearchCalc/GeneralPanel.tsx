@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { InputAreaData } from './ResearchCalcAppConfig';
 import BetterSecondSleepDialog, { BetterSecondSleepData } from './BetterSecondSleepDialog';
 import PreviewScore from './PreviewScore';
-import { getScoreRange } from './Score';
+import { updateActualBonus } from './ResearchCalcAppConfig';
 
 export default function GeneralPanel({data}: {data: InputAreaData}) {
     const [isBetterSecondSleepDialogOpen, setBetterSecondSleepOpen] = useState(false);
@@ -19,17 +19,18 @@ export default function GeneralPanel({data}: {data: InputAreaData}) {
         setBetterSecondSleepOpen(true);
     }
 
+    const actualData = updateActualBonus(data);
     return (
         <div style={{marginBottom: '10rem'}}>
-            <PreviewScore count={4} data={data} ranges={getScoreRange(4, data)}
+            <PreviewScore count={4} data={actualData}
                 onSecondSleepDetailClick={onSecondSleepDetailClick}/>
-            <PreviewScore count={5} data={data} ranges={getScoreRange(5, data)}
+            <PreviewScore count={5} data={actualData}
                 onSecondSleepDetailClick={onSecondSleepDetailClick}/>
-            <PreviewScore count={6} data={data} ranges={getScoreRange(6, data)}
+            <PreviewScore count={6} data={actualData}
                 onSecondSleepDetailClick={onSecondSleepDetailClick}/>
-            <PreviewScore count={7} data={data} ranges={getScoreRange(7, data)}
+            <PreviewScore count={7} data={actualData}
                 onSecondSleepDetailClick={onSecondSleepDetailClick}/>
-            <PreviewScore count={8} data={data} ranges={getScoreRange(8, data)}
+            <PreviewScore count={8} data={actualData}
                 onSecondSleepDetailClick={onSecondSleepDetailClick}/>
             <BetterSecondSleepDialog data={betterSecondSleepData}
                 open={isBetterSecondSleepDialogOpen} onClose={onBetterSecondSleepDialogClose}/>

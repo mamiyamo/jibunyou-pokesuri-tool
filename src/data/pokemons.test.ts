@@ -251,7 +251,8 @@ describe('JSON data verification', () => {
             // legendary
             if (pokemon.skill === "Helper Boost" ||
                 pokemon.skill === "Energy for Everyone S (Lunar Blessing)" ||
-                pokemon.skill === "Energizing Cheer S (Heal Pulse)"
+                pokemon.skill === "Energizing Cheer S (Heal Pulse)" ||
+                pokemon.skill === "Berry Burst (Draco Meteor)"
             ) {
                 expect(pokemon.exp).toBe(1080);
                 continue;

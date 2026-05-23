@@ -529,10 +529,14 @@ class Energy {
 
     getEnergyRecoveryForCook(energy: number) {
         if (energy > 80) { return 1; }
-        if (energy > 60) { return 2; }
-        if (energy > 40) { return 3; }
-        if (energy > 20) { return 4; }
-        return 5;
+        if (energy > 70) { return 2; }
+        if (energy > 60) { return 3; }
+        if (energy > 50) { return 4; }
+        if (energy > 40) { return 5; }
+        if (energy > 30) { return 6; }
+        if (energy > 20) { return 7; }
+        if (energy > 10) { return 8; }
+        return 9;
     }
 
 }
