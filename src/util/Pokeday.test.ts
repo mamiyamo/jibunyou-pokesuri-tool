@@ -38,6 +38,20 @@ describe('Pokeday', () => {
         expect(detailMap.milk?.skill ?? 0).toBe(0);
     });
 
+    test('Sandslash Ingredient Draw S uses all three fixed ingredients', () => {
+        const boxItem = new PokemonBoxItem(new PokemonIv({
+            pokemonName: 'Sandslash',
+            level: 10,
+            ingredient: 'AAA',
+        }));
+        const detailMap = getDailyIngredientDetailMap(boxItem);
+
+        expect(detailMap.potato?.skill ?? 0).toBeGreaterThan(0);
+        expect(detailMap.corn?.skill ?? 0).toBeGreaterThan(0);
+        expect(detailMap.pumpkin?.skill ?? 0).toBeGreaterThan(0);
+        expect(detailMap.apple?.skill ?? 0).toBe(0);
+    });
+
     test('ingredient baseline sources are fixed but counts depend on parameter', () => {
         expect(ingredientBaselineSources.oil.pokemonName).toBe('Toxicroak');
 

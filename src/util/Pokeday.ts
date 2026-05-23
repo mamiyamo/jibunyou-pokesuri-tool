@@ -11,6 +11,7 @@ import { SubSkillListProps } from './SubSkillList';
 import { IngredientType } from './PokemonRp';
 import { getEventBonus } from '../data/events';
 import { AlwaysTap } from './Energy';
+import { getIngredientDrawIngredients } from './MainSkill';
 
 export type PokedayRecipeCategory = 'curry' | 'salad' | 'dessert';
 
@@ -787,14 +788,11 @@ export function getSkillIngredientPool(boxItem: PokemonBoxItem, skillName: strin
         return hyperCutterIngredientPool;
     }
 
-    // 食材セレクトSは固定食材セットを使う（解放状況には依存しない）
-    if (skillName === "Ingredient Draw S") {
-        if (boxItem.iv.pokemon.ing1.name === 'avocado') {
-            return ['avocado', 'potato', 'oil'];
-        }
-        if (boxItem.iv.pokemon.ing1.name === 'honey') {
-            return ['honey', 'oil', 'corn'];
-        }
+    // 食材セレクトSはポケモンごとの固定食材セットを使う（解放状況には依存しない）
+    if (skillName === "Ingredient Draw S" ||
+        skillName === "Ingredient Draw S (Super Luck)"
+    ) {
+        return getIngredientDrawIngredients(boxItem.iv.pokemon);
     }
 
     // 食材ゲット系やその他は既存ロジック（解放済み食材ベース）
