@@ -12,13 +12,14 @@ import StrengthSettingForm from './Strength/StrengthParameterForm';
 import RpView from './Rp/RpView';
 import StrengthView from './Strength/StrengthView';
 import RatingView from './RatingView';
-import DailyPlanView from './DailyPlan/DailyPlanView';
 import TeamPlanView from './DailyPlan/TeamPlanView';
 import TeamPlanMealSettingsView from './DailyPlan/TeamPlanMealSettingsView';
+import EnergyDialog from './Strength/EnergyDialog';
 import BoxItemDialog from './Box/BoxItemDialog';
 import BoxExportDialog from './Box/BoxExportDialog';
 import BoxImportDialog from './Box/BoxImportDialog';
 import BoxDeleteAllDialog from './Box/BoxDeleteAllDialog';
+import PokemonStrength from '../../util/PokemonStrength';
 import { useTranslation } from 'react-i18next';
 
 const StyledTabs = styled(Tabs)({
@@ -68,6 +69,18 @@ const ResearchCalcApp = React.memo(() => {
 
     const isSelectedItemEdited = selectedItem !== null &&
         !selectedItem.iv.isEqual(state.pokemonIv);
+    const tabIndex = state.tabIndex === 3 ? 4 : state.tabIndex;
+    const isTeamPlanTab = tabIndex === 4;
+    const teamPlanEnergyDialogResult = React.useMemo(() => {
+        if (!isTeamPlanTab) {
+            return null;
+        }
+        const strength = new PokemonStrength(state.pokemonIv, state.parameter);
+        return {
+            iv: strength.pokemonIv,
+            result: strength.calculate(),
+        };
+    }, [isTeamPlanTab, state.parameter, state.pokemonIv]);
 
     const onBoxExportDialogClose = React.useCallback(() => {
         dispatch({type: "exportClose"});
@@ -83,20 +96,17 @@ const ResearchCalcApp = React.memo(() => {
         <div style={{padding: "0 .5rem", position: 'sticky', top: 0,
             zIndex: 1, background: '#f9f9f9',
         }}>
-            <StyledTabs value={state.tabIndex} onChange={onTabChange}>
-                <StyledTab label={t('rp')}/>
-                <StyledTab label={t('strength2')}/>
-                <StyledTab label={t('rating')}/>
-                <StyledTab label="1日編成"/>
-                <StyledTab label="1日チーム編成"/>
+            <StyledTabs value={tabIndex} onChange={onTabChange}>
+                <StyledTab value={0} label={t('rp')}/>
+                <StyledTab value={1} label={t('strength2')}/>
+                <StyledTab value={2} label={t('rating')}/>
+                <StyledTab value={4} label="1日チーム編成"/>
             </StyledTabs>
-            {state.tabIndex === 0 && <RpView state={state} width={width}/>}
-            {state.tabIndex === 1 && <StrengthView state={state} dispatch={dispatch}/>}
-            {state.tabIndex === 2 && <RatingView pokemonIv={state.pokemonIv}
+            {tabIndex === 0 && <RpView state={state} width={width}/>}
+            {tabIndex === 1 && <StrengthView state={state} dispatch={dispatch}/>}
+            {tabIndex === 2 && <RatingView pokemonIv={state.pokemonIv}
                 width={width} useSkillPity={state.parameter.useSkillPity}/>}
-            {state.tabIndex === 3 && <DailyPlanView items={state.box.items}
-                parameter={state.parameter}/>}
-            {state.tabIndex === 4 && <TeamPlanView state={state} dispatch={dispatch}/>}
+            {isTeamPlanTab && <TeamPlanView state={state} dispatch={dispatch}/>}
             <RateNotFixedPanel state={state} dispatch={dispatch}/>
 
             <LowerTabHeader state={state}
@@ -110,14 +120,14 @@ const ResearchCalcApp = React.memo(() => {
         {state.lowerTabIndex === 1 &&
             <BoxView items={state.box.items} iv={state.pokemonIv}
                 selectedId={state.selectedItemId} dispatch={dispatch}
-                multiSelectedIds={state.tabIndex === 4 ? state.teamPlanSelectedItemIds : undefined}
-                selectionAction={state.tabIndex === 4 ? 'toggleTeamPlanCandidate' : 'select'}
+                multiSelectedIds={isTeamPlanTab ? state.teamPlanSelectedItemIds : undefined}
+                selectionAction={isTeamPlanTab ? 'toggleTeamPlanCandidate' : 'select'}
                 parameter={state.parameter}/>}
         {state.lowerTabIndex === 2 &&
             <StrengthSettingForm value={state.parameter}
                 hasHelpingBonus={state.pokemonIv.hasHelpingBonusInActiveSubSkills}
                 dispatch={dispatch}/>}
-        {state.lowerTabIndex === 3 && state.tabIndex === 4 &&
+        {state.lowerTabIndex === 3 && isTeamPlanTab &&
             <TeamPlanMealSettingsView/>}
         <BoxItemDialog key={state.boxItemDialogKey}
             open={state.boxItemDialogOpen} boxItem={selectedItem}
@@ -130,6 +140,15 @@ const ResearchCalcApp = React.memo(() => {
             open={state.boxImportDialogOpen} onClose={onBoxImportDialogClose}/>
         <BoxDeleteAllDialog box={state.box}
             open={state.boxDeleteAllDialogOpen} onClose={onBoxDeleteAllDialogClose}/>
+        {isTeamPlanTab && teamPlanEnergyDialogResult !== null &&
+            <EnergyDialog
+                open={state.energyDialogOpen}
+                iv={teamPlanEnergyDialogResult.iv}
+                result={teamPlanEnergyDialogResult.result}
+                parameter={state.parameter}
+                dispatch={dispatch}
+                onClose={() => dispatch({type: 'closeEnergyDialog'})}
+            />}
         <Snackbar open={state.alertMessage !== ""} message={t(state.alertMessage)}
             autoHideDuration={2000} onClose={onAlertMessageClose}/>
         <Snackbar open={isSelectedItemEdited} message={t('pokemon in the box is edited')}

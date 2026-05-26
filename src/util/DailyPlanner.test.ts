@@ -136,6 +136,61 @@ describe('DailyPlanner', () => {
         );
     });
 
+    test('manual team allocation uses provided schedule segments', () => {
+        const raichu = new PokemonBoxItem(new PokemonIv({ pokemonName: 'Raichu', level: 50 }));
+        const bulbasaur = new PokemonBoxItem(new PokemonIv({ pokemonName: 'Bulbasaur', level: 50 }));
+        const result = calculateDailyTeamAllocationResult(
+            [raichu, bulbasaur],
+            createStrengthParameter({}),
+            getDefaultDailyPlannerMeals(),
+            {},
+            [
+                {itemId: raichu.id, rowIndex: 0, startHour: 0, endHour: 2},
+                {itemId: bulbasaur.id, rowIndex: 1, startHour: 1, endHour: 3},
+            ],
+        );
+
+        expect(result.candidates[0].workHours).toBeCloseTo(2);
+        expect(result.candidates[1].workHours).toBeCloseTo(2);
+        expect(result.totalTeamHours).toBeCloseTo(4);
+    });
+
+    test('manual team allocation does not double count same pokemon at the same time', () => {
+        const raichu = new PokemonBoxItem(new PokemonIv({ pokemonName: 'Raichu', level: 50 }));
+        const result = calculateDailyTeamAllocationResult(
+            [raichu],
+            createStrengthParameter({}),
+            getDefaultDailyPlannerMeals(),
+            {},
+            [
+                {itemId: raichu.id, rowIndex: 0, startHour: 0, endHour: 2},
+                {itemId: raichu.id, rowIndex: 1, startHour: 1, endHour: 3},
+            ],
+        );
+
+        expect(result.candidates[0].workHours).toBeCloseTo(3);
+        expect(result.totalTeamHours).toBeCloseTo(3);
+    });
+
+    test('manual team allocation counts night ingredients when asleep tap frequency is none', () => {
+        const bulbasaur = new PokemonBoxItem(new PokemonIv({ pokemonName: 'Bulbasaur', level: 50 }));
+        const parameter = createStrengthParameter({tapFrequencyAsleep: 0});
+        const result = calculateDailyTeamAllocationResult(
+            [bulbasaur],
+            parameter,
+            getDefaultDailyPlannerMeals(),
+            {},
+            [
+                {itemId: bulbasaur.id, rowIndex: 0, startHour: 15.5, endHour: 24},
+            ],
+        );
+        const ingredientTotal = Object.values(result.candidates[0].ingredientCounts)
+            .reduce((sum, value) => sum + (value ?? 0), 0);
+
+        expect(result.candidates[0].workHours).toBeCloseTo(8.5);
+        expect(ingredientTotal).toBeGreaterThan(0);
+    });
+
     test('team allocation keeps night team fixed when asleep tap frequency is none', () => {
         const items = [
             'Raichu',

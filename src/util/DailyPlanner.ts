@@ -103,6 +103,13 @@ export type DailyPlannerAllocationResult = {
     isDemandSatisfied: boolean;
 };
 
+export type DailyPlannerManualAllocationSegment = {
+    itemId: number;
+    rowIndex: number;
+    startHour: number;
+    endHour: number;
+};
+
 export const dailyPlannerMaxTeamSize = 5;
 export const dailyPlannerMaxCandidateCount = 10;
 
@@ -890,6 +897,9 @@ function createTimeScopedParameter(
     startHour: number,
     endHour: number,
 ): StrengthParameter {
+    if (isNightPeriod(startHour, endHour) && parameter.tapFrequencyAsleep === NoTap) {
+        return parameter;
+    }
     const tapFrequency = isNightPeriod(startHour, endHour) ?
         parameter.tapFrequencyAsleep :
         parameter.tapFrequencyAwake;
@@ -905,6 +915,7 @@ function calculateNightNoTapSkillTriggerCount(
     parameter: StrengthParameter,
     helpBonusCount: number,
     periodHours: number,
+    startHour: number = sleepStartHourFromWakeup,
 ): number {
     const dailyParameter = createPlannerParameter(parameter, helpBonusCount);
     dailyParameter.period = dayHours;
@@ -915,7 +926,7 @@ function calculateNightNoTapSkillTriggerCount(
     const sleepSeconds = periodHours * 60 * 60;
     const helpCounts = calculateHelpCountPerTap(
         energy.efficiencies,
-        sleepStartHourFromWakeup * 60 * 60,
+        startHour * 60 * 60,
         result.baseFreq,
         sleepSeconds,
         sleepSeconds,
@@ -931,6 +942,93 @@ function calculateNightNoTapSkillTriggerCount(
         return sum + simulationResult.skillOnce + simulationResult.skillTwice * 2;
     }, 0);
     return Math.min(2, Math.floor(skillCount));
+}
+
+function calculateNightNoTapPeriodSummary(
+    item: PokemonBoxItem,
+    parameter: StrengthParameter,
+    helpBonusCount: number,
+    startHour: number,
+    periodHours: number,
+    teamContext: DailyPlannerTeamContext,
+): DailyPlannerPokemonSummary {
+    const dailyParameter = createPlannerParameter(parameter, helpBonusCount);
+    dailyParameter.period = dayHours;
+    dailyParameter.sleepScore = 100;
+    const strength = new PokemonStrength(item.iv, dailyParameter);
+    const result = strength.calculate();
+    const energy = new Energy(strength.pokemonIv).calculate(dailyParameter, result.bonus);
+    const sleepSeconds = periodHours * 60 * 60;
+    const helpCounts = calculateHelpCountPerTap(
+        energy.efficiencies,
+        startHour * 60 * 60,
+        result.baseFreq,
+        sleepSeconds,
+        sleepSeconds,
+    );
+    const simulation = new HelpCountSimulation(
+        strength.pokemonIv,
+        dailyParameter.isGoodCampTicketSet,
+        result.overallSkillRate,
+        result.inventoryBonus,
+    );
+    const simulationResult = helpCounts.reduce((current, helpCount) => {
+        const next = simulation.compute(helpCount);
+        return {
+            normalHelpCount: current.normalHelpCount + next.normalHelpCount,
+            sneakySnackingCount: current.sneakySnackingCount + next.sneakySnackingCount,
+            berryCount: current.berryCount + next.berryCount,
+            ingredientCount: next.ingredientCount.map((value, index) =>
+                value + (current.ingredientCount[index] ?? 0)),
+            overflowIngsPerSlot: next.overflowIngsPerSlot.map((value, index) =>
+                value + (current.overflowIngsPerSlot[index] ?? 0)),
+            skillOnce: current.skillOnce + next.skillOnce,
+            skillTwice: current.skillTwice + next.skillTwice,
+        };
+    }, {
+        normalHelpCount: 0,
+        sneakySnackingCount: 0,
+        berryCount: 0,
+        ingredientCount: [] as number[],
+        overflowIngsPerSlot: [] as number[],
+        skillOnce: 0,
+        skillTwice: 0,
+    });
+    const skillTriggerCount = Math.min(2, Math.floor(
+        simulationResult.skillOnce + simulationResult.skillTwice * 2,
+    ));
+    const summary = calculatePokemonPeriodSummary(
+        item,
+        parameter,
+        helpBonusCount,
+        periodHours,
+        {
+            ...teamContext,
+            skillTriggerCountOverride: skillTriggerCount,
+        },
+    );
+    const ingredientCounts: Partial<Record<IngredientName, number>> = {};
+    for (let index = 0; index < result.ingredients.length; index++) {
+        const ingredient = result.ingredients[index];
+        const count = simulationResult.ingredientCount[index] ?? 0;
+        if (count > 0) {
+            ingredientCounts[ingredient.name] = (ingredientCounts[ingredient.name] ?? 0) + count;
+        }
+    }
+    addScaledIngredientCounts(ingredientCounts, summary.randomIngredientCounts, 1);
+    const berryEnergyPerCount = result.berryCount > 0 ?
+        result.berryTotalStrength / result.berryCount :
+        result.berryStrength;
+    const berryEnergy = simulationResult.berryCount * berryEnergyPerCount;
+
+    return {
+        ...summary,
+        directEnergy: berryEnergy,
+        berryEnergy,
+        berryCount: simulationResult.berryCount,
+        totalEnergy: berryEnergy + summary.mealEnergy + summary.skillEnergy,
+        ingredientCounts,
+    };
 }
 
 function addScaledIngredientCounts(
@@ -1120,19 +1218,25 @@ function recalculateAllocationSegments(
                 4,
                 helpingBonusCount - (member.item.iv.hasHelpingBonusInActiveSubSkills ? 1 : 0),
             ));
-            const skillTriggerCountOverride = parameter.tapFrequencyAsleep === NoTap && isNightPeriod(start, end) ?
-                calculateNightNoTapSkillTriggerCount(member.item, parameter, memberHelpBonusCount, overlapHours) :
-                undefined;
-            const rawSummary = calculatePokemonPeriodSummary(
-                member.item,
-                createTimeScopedParameter(parameter, start, end),
-                memberHelpBonusCount,
-                overlapHours,
-                {
-                    hasOtherPlusMinus: plusMinusIds.size > (plusMinusIds.has(member.item.id) ? 1 : 0),
-                    skillTriggerCountOverride,
-                },
-            );
+            const teamContext = {
+                hasOtherPlusMinus: plusMinusIds.size > (plusMinusIds.has(member.item.id) ? 1 : 0),
+            };
+            const rawSummary = parameter.tapFrequencyAsleep === NoTap && isNightPeriod(start, end) ?
+                calculateNightNoTapPeriodSummary(
+                    member.item,
+                    parameter,
+                    memberHelpBonusCount,
+                    Math.max(start, segment.startHour),
+                    overlapHours,
+                    teamContext,
+                ) :
+                calculatePokemonPeriodSummary(
+                    member.item,
+                    createTimeScopedParameter(parameter, start, end),
+                    memberHelpBonusCount,
+                    overlapHours,
+                    teamContext,
+                );
             const energyStart = energyByMember[segment.memberIndex] ?? 100;
             intervalEntries.push({segment, overlapHours, energyStart, rawSummary});
         }
@@ -1454,6 +1558,42 @@ function createSegmentsFromSchedule(schedule: Array<Array<number | null>>): Allo
     return segments;
 }
 
+function createSegmentsFromManualSchedule(
+    candidates: PokemonBoxItem[],
+    manualSegments: DailyPlannerManualAllocationSegment[],
+): AllocationSegment[] {
+    const itemIndexById = new Map(candidates.map((item, index) => [item.id, index]));
+    const schedule = Array.from({length: dailyPlannerMaxTeamSize},
+        () => Array.from<number | null>({length: teamPlanSlotsPerDay}).fill(null));
+
+    for (const segment of manualSegments) {
+        const memberIndex = itemIndexById.get(segment.itemId);
+        if (memberIndex === undefined) {
+            continue;
+        }
+        const rowIndex = Math.max(0, Math.min(dailyPlannerMaxTeamSize - 1, Math.floor(segment.rowIndex)));
+        const startSlot = Math.max(0, Math.min(
+            teamPlanSlotsPerDay,
+            Math.floor(segment.startHour / teamPlanSlotHours),
+        ));
+        const endSlot = Math.max(startSlot, Math.min(
+            teamPlanSlotsPerDay,
+            Math.ceil(segment.endHour / teamPlanSlotHours),
+        ));
+        for (let slot = startSlot; slot < endSlot; slot++) {
+            if (schedule[rowIndex][slot] !== null) {
+                continue;
+            }
+            if (schedule.some(row => row[slot] === memberIndex)) {
+                continue;
+            }
+            schedule[rowIndex][slot] = memberIndex;
+        }
+    }
+
+    return createSegmentsFromSchedule(schedule);
+}
+
 function compactScheduleByMemberTotals(
     schedule: Array<Array<number | null>>,
     memberCount: number,
@@ -1712,6 +1852,7 @@ export function calculateDailyTeamAllocationResult(
     parameter: StrengthParameter,
     mealChoices: DailyPlannerMealChoice[] = getDefaultDailyPlannerMeals(),
     stock: DailyPlannerIngredientStock = {},
+    manualSegments?: DailyPlannerManualAllocationSegment[],
 ): DailyPlannerAllocationResult {
     const candidates = items.slice(0, dailyPlannerMaxCandidateCount);
     const normalizedMeals = mealChoices.length >= 3 ? mealChoices.slice(0, 3) : [
@@ -1719,7 +1860,15 @@ export function calculateDailyTeamAllocationResult(
         ...getDefaultDailyPlannerMeals().slice(mealChoices.length),
     ];
     const demand = calculateDemandFromMeals(normalizedMeals);
-    const {members, remainingDemand} = calculateTimeSlotAllocation(candidates, parameter, demand, stock);
+    const {members, remainingDemand} = manualSegments === undefined ?
+        calculateTimeSlotAllocation(candidates, parameter, demand, stock) :
+        recalculateAllocationSegments(
+            createSegmentsFromManualSchedule(candidates, manualSegments),
+            candidates.map(createAllocationMemberFromItem),
+            parameter,
+            demand,
+            stock,
+        );
 
     const totalTeamHours = Math.min(
         dayHours * dailyPlannerMaxTeamSize,
