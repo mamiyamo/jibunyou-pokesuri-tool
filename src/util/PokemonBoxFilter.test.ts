@@ -27,6 +27,7 @@ describe('BoxFilterConfig', () => {
             expect(config.ingredientUnlockedOnly).toBe(false);
             expect(config.mainSkillNames).toEqual([]);
             expect(config.subSkillNames).toEqual([]);
+            expect(config.shinyOnly).toBe(false);
             expect(config.subSkillUnlockedOnly).toBe(true);
             expect(config.subSkillAnd).toBe(true);
             expect(config.neutralNature).toBe(false);
@@ -43,6 +44,7 @@ describe('BoxFilterConfig', () => {
                 ingredientUnlockedOnly: true,
                 mainSkillNames: ["Charge Strength S"],
                 subSkillNames: ["Helping Speed M"],
+                shinyOnly: true,
                 subSkillUnlockedOnly: false,
                 subSkillAnd: false,
                 neutralNature: true,
@@ -57,6 +59,7 @@ describe('BoxFilterConfig', () => {
             expect(config.ingredientUnlockedOnly).toBe(true);
             expect(config.mainSkillNames).toEqual(["Charge Strength S"]);
             expect(config.subSkillNames).toEqual(["Helping Speed M"]);
+            expect(config.shinyOnly).toBe(true);
             expect(config.subSkillUnlockedOnly).toBe(false);
             expect(config.subSkillAnd).toBe(false);
             expect(config.neutralNature).toBe(true);
@@ -239,6 +242,19 @@ describe('BoxFilterConfig', () => {
             const filtered = config.filter(items, false, mockT);
             expect(filtered.length).toBe(1);
             expect(filtered[0].nickname).toBe('HasBoth');
+        });
+
+        test('filters by shiny only', () => {
+            const config = new BoxFilterConfig({ shinyOnly: true });
+
+            const items = [
+                new PokemonBoxItem(new PokemonIv({ pokemonName: 'Pikachu', shiny: true }), 'Shiny'),
+                new PokemonBoxItem(new PokemonIv({ pokemonName: 'Pikachu' }), 'Normal')
+            ];
+
+            const filtered = config.filter(items, false, mockT);
+            expect(filtered.length).toBe(1);
+            expect(filtered[0].nickname).toBe('Shiny');
         });
 
         test('filters by sub skills (OR logic)', () => {
@@ -521,6 +537,11 @@ describe('BoxFilterConfig', () => {
 
         test('returns false when subSkillNames is set', () => {
             const config = new BoxFilterConfig({ subSkillNames: ["Helping Speed M"] });
+            expect(config.isEmpty).toBe(false);
+        });
+
+        test('returns false when shinyOnly is true', () => {
+            const config = new BoxFilterConfig({ shinyOnly: true });
             expect(config.isEmpty).toBe(false);
         });
 

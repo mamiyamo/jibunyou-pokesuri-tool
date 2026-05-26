@@ -320,9 +320,10 @@ interface PokemonDialogConfig {
 }
 
 const PokemonSelectDialog = React.memo(({
-    open, pokemonOptions, selectedValue, onClose, onChange,
+    open, shiny, pokemonOptions, selectedValue, onClose, onChange,
 }: {
     open: boolean,
+    shiny: boolean,
     pokemonOptions: PokemonOption[],
     selectedValue: PokemonOption,
     onClose: () => void,
@@ -505,7 +506,7 @@ const PokemonSelectDialog = React.memo(({
             renderOption={(props, option) => {
                 const {key, ...others} = props;
                 return (<MenuItem key={key} {...others}>
-                    <PokemonIcon idForm={option.idForm} size={48}/>
+                    <PokemonIcon idForm={option.idForm} size={48} shiny={shiny}/>
                     <footer>
                         {option.localName.replace(/\(.+/, "")}
                         {option.localName.endsWith(")") && <small>

@@ -22,6 +22,7 @@ describe('PokemonIV', () => {
             expect(iv.level).toBe(30);
             expect(iv.skillLevel).toBe(2);
             expect(iv.ribbon).toBe(0);
+            expect(iv.shiny).toBe(false);
         });
 
         test('with full object parameter', () => {
@@ -35,6 +36,7 @@ describe('PokemonIV', () => {
                 }),
                 nature: new Nature('Adamant'),
                 ribbon: 2,
+                shiny: true,
             });
 
             expect(iv.pokemonName).toBe('Pikachu');
@@ -44,6 +46,12 @@ describe('PokemonIV', () => {
             expect(iv.subSkills.lv10?.name).toBe('Berry Finding S');
             expect(iv.nature.name).toBe('Adamant');
             expect(iv.ribbon).toBe(2);
+            expect(iv.shiny).toBe(true);
+        });
+
+        test('shiny is always false for mythical pokemon', () => {
+            const iv = new PokemonIv({ pokemonName: 'Mew', shiny: true });
+            expect(iv.shiny).toBe(false);
         });
 
         test('normalization happens automatically', () => {
@@ -457,6 +465,19 @@ describe('PokemonIV', () => {
             expect(iv.serialize()).toBe('EQCApwD5-3+f');
 
             const ret = PokemonIv.deserialize('EQCApwD5-3+f');
+            compareIv(iv, ret);
+        });
+
+        test('shiny Bulbasaur', () => {
+            const iv = new PokemonIv({
+                pokemonName: 'Bulbasaur',
+                skillLevel: 3,
+                shiny: true,
+            });
+            expect(iv.serialize()).toBe('EQCApwn5-38f');
+
+            const ret = PokemonIv.deserialize('EQCApwn5-38f');
+            expect(ret.shiny).toBe(true);
             compareIv(iv, ret);
         });
 
@@ -1289,8 +1310,9 @@ describe('PokemonIV', () => {
         expect(iv2.subSkills.lv25?.name).toBe(iv1.subSkills.lv25?.name);
         expect(iv2.subSkills.lv50?.name).toBe(iv1.subSkills.lv50?.name);
         expect(iv2.subSkills.lv75?.name).toBe(iv1.subSkills.lv75?.name);
-        expect(iv2.subSkills.lv100?.name).toBe(iv1.subSkills.lv100?.name);
-        expect(iv2.ribbon).toBe(iv1.ribbon);
-        expect(iv2.versatileSkill).toBe(iv1.versatileSkill);
-    }
+            expect(iv2.subSkills.lv100?.name).toBe(iv1.subSkills.lv100?.name);
+            expect(iv2.ribbon).toBe(iv1.ribbon);
+            expect(iv2.shiny).toBe(iv1.shiny);
+            expect(iv2.versatileSkill).toBe(iv1.versatileSkill);
+        }
 });

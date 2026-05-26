@@ -272,7 +272,7 @@ const LevelForm = React.memo(({ levelInfo, maxExpLeft, onLevelInfoChange }: {
 
     return <>
         <StyledIcon>
-            <PokemonIcon idForm={levelInfo.iv.idForm} size={80}/>
+            <PokemonIcon idForm={levelInfo.iv.idForm} size={80} shiny={levelInfo.iv.shiny}/>
         </StyledIcon>
         <StyledLevel>
             <div className="level">

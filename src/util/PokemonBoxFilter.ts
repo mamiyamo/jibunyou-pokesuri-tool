@@ -23,6 +23,8 @@ interface IBoxFilterConfig {
     mainSkillNames: MainSkillName[];
     /** Filter sub skills */
     subSkillNames: SubSkillType[];
+    /** Include only shiny Pokemon */
+    shinyOnly: boolean;
     /** Include only Pokemon with the subSkillName unlocked */
     subSkillUnlockedOnly: boolean;
     /** Include only Pokemon with the subSkillName unlocked */
@@ -53,6 +55,8 @@ export default class BoxFilterConfig implements IBoxFilterConfig {
     mainSkillNames: MainSkillName[];
     /** Filter sub skills */
     subSkillNames: SubSkillType[];
+    /** Include only shiny Pokemon */
+    shinyOnly: boolean;
     /** Include only Pokemon with the subSkillName unlocked */
     subSkillUnlockedOnly: boolean;
     /** Include only Pokemon with the subSkillName unlocked */
@@ -73,6 +77,7 @@ export default class BoxFilterConfig implements IBoxFilterConfig {
         this.ingredientUnlockedOnly = values.ingredientUnlockedOnly ?? false;
         this.mainSkillNames = values.mainSkillNames ?? [];
         this.subSkillNames = values.subSkillNames ?? [];
+        this.shinyOnly = values.shinyOnly ?? false;
         this.subSkillUnlockedOnly = values.subSkillUnlockedOnly ?? true;
         this.subSkillAnd = values.subSkillAnd ?? true;
         this.neutralNature = values.neutralNature ?? false;
@@ -131,6 +136,9 @@ export default class BoxFilterConfig implements IBoxFilterConfig {
                 return false;
             }
         }
+        if (this.shinyOnly && !item.iv.shiny) {
+            return false;
+        }
         if (this.subSkillNames.length !== 0) {
             const subSkills = item.iv.subSkills
                 .getActiveSubSkills(this.subSkillUnlockedOnly ? item.iv.level : 100)
@@ -172,6 +180,10 @@ export default class BoxFilterConfig implements IBoxFilterConfig {
             return 0;
         }
 
+        if (this.shinyOnly) {
+            return 0;
+        }
+
         if (this.ingredientName !== undefined) {
             return 1;
         }
@@ -202,6 +214,7 @@ export default class BoxFilterConfig implements IBoxFilterConfig {
             this.ingredientName === undefined &&
             this.mainSkillNames.length === 0 &&
             this.subSkillNames.length === 0 &&
+            this.shinyOnly === false &&
             this.neutralNature === false &&
             this.upNature === "No effect" &&
             this.downNature === "No effect";

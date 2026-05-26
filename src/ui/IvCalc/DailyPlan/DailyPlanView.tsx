@@ -230,7 +230,7 @@ const DailyPlanView = React.memo(({items, parameter}: {
                                     gap: '.5rem',
                                     alignItems: 'center',
                                 }}>
-                                    <PokemonIcon idForm={summary.item.iv.idForm} size={32}/>
+                                    <PokemonIcon idForm={summary.item.iv.idForm} size={32} shiny={summary.item.iv.shiny}/>
                                     <Typography variant="body2" sx={{lineHeight: 1.25}}>
                                         {summary.item.filledNickname(t)}
                                         <br/>
@@ -278,7 +278,7 @@ const DailyPlanView = React.memo(({items, parameter}: {
                         borderRadius: '.45rem',
                         padding: '.5rem .65rem',
                     }}>
-                        <PokemonIcon idForm={summary.item.iv.idForm} size={42}/>
+                        <PokemonIcon idForm={summary.item.iv.idForm} size={42} shiny={summary.item.iv.shiny}/>
                         <div>
                             <div style={{fontWeight: 600}}>
                                 {summary.item.filledNickname(t)}
@@ -410,7 +410,7 @@ const DailyPlanView = React.memo(({items, parameter}: {
                                             alignItems: 'center',
                                             gap: '.45rem',
                                         }}>
-                                            <PokemonIcon idForm={summary.item.iv.idForm} size={30}/>
+                                            <PokemonIcon idForm={summary.item.iv.idForm} size={30} shiny={summary.item.iv.shiny}/>
                                             <Typography variant="body2" sx={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
                                                 {summary.item.filledNickname(t)}
                                             </Typography>

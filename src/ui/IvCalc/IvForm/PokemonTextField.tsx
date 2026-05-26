@@ -78,7 +78,8 @@ const PokemonTextField = React.memo(({iv, fixMode, onChange, onCandyClick}: {
         </TextLikeButton>}
         <EvolveButton iv={iv} onChange={onChange}/>
         <CandyButton onClick={onCandyClick}/>
-        <PokemonSelectDialog open={open} onClose={onCloseDialog} onChange={changeHandler}
+        <PokemonSelectDialog open={open} shiny={iv.shiny}
+            onClose={onCloseDialog} onChange={changeHandler}
             pokemonOptions={pokemonOptions} selectedValue={selectedOption}/>
     </div>);
 });

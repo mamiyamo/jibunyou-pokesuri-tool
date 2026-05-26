@@ -57,6 +57,9 @@ const BoxFilterDialog = React.memo(({open, value, onChange, onClose}: {
                 [...value.filterSpecialty, val],
         }));
     }, [value, onChange]);
+    const onShinyOnlyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange(new BoxFilterConfig({...value, shinyOnly: e.target.checked}));
+    }, [value, onChange]);
     const onIngClick = useCallback((selected: IngredientName) => {
         const ingredientName = value.ingredientName === selected ?
             undefined : selected;
@@ -105,6 +108,11 @@ const BoxFilterDialog = React.memo(({open, value, onChange, onClose}: {
                 {typeButtons}
                 <h4 style={{margin: '1rem 0 0.5rem'}}>{t('specialty')}</h4>
                 {specialtyButtons}
+                <section>
+                    <label>{t('shiny')}:</label>
+                    <Switch checked={value.shinyOnly} size="small"
+                        onChange={onShinyOnlyChange}/>
+                </section>
             </div>
             <div className="tabChild">
                 {ingButtons}

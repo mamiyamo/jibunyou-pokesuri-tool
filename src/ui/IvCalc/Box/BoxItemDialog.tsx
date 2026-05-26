@@ -9,6 +9,7 @@ import PokemonIv from '../../../util/PokemonIv';
 import { StrengthParameter } from '../../../util/PokemonStrength';
 import PokemonRp from '../../../util/PokemonRp';
 import { Button, Dialog, DialogActions, TextField }  from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import Slide from '@mui/material/Slide';
 import { TransitionProps } from '@mui/material/transitions';
 import { useTranslation } from 'react-i18next'
@@ -97,6 +98,11 @@ const BoxItemDialogContent = React.memo(({originalBoxItem, isEdit, parameter, di
         }
         onClose();
     }, [isEdit, onChange, onClose, boxItem, nickname]);
+    const onShinyClick = React.useCallback(() => {
+        const iv = boxItem.iv.clone({shiny: !boxItem.iv.shiny});
+        setBoxItem(new PokemonBoxItem(iv, boxItem.nickname, boxItem.id));
+        setRp(new PokemonRp(iv).calculate().rp);
+    }, [boxItem, setBoxItem, setRp]);
 
     let displayNickName = nickname;
     if (!isEditingNickName && nickname === "") {
@@ -106,7 +112,15 @@ const BoxItemDialogContent = React.memo(({originalBoxItem, isEdit, parameter, di
     return <>
         <article>
             <RpLabel rp={rp} iv={boxItem.iv}/>
-            <div className="icon"><PokemonIcon idForm={boxItem.iv.idForm} size={80}/></div>
+            <div className="icon">
+                <PokemonIcon idForm={boxItem.iv.idForm} size={80} shiny={boxItem.iv.shiny}/>
+                <Button size="small" variant={boxItem.iv.shiny ? "contained" : "outlined"}
+                    startIcon={<AutoAwesomeIcon/>}
+                    disabled={boxItem.iv.isMythical}
+                    onClick={onShinyClick}>
+                    {t('shiny')}
+                </Button>
+            </div>
             <div className="nickname">
                 <TextField variant="standard" size="small" value={displayNickName}
                     onChange={onNickNameChange}
@@ -130,7 +144,16 @@ const StyledDialog = styled(Dialog)({
 
             '& > div.icon': {
                 margin: '.2rem auto',
-                width: '82px',
+                width: '110px',
+                textAlign: 'center',
+                '& > div': {
+                    margin: '0 auto .3rem',
+                },
+                '& > button': {
+                    minWidth: '90px',
+                    padding: '1px 6px',
+                    fontSize: '0.75rem',
+                },
             },
             '& > div.nickname': {
                 margin: '0 auto 1.2rem auto',

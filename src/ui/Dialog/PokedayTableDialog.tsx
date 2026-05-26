@@ -1063,7 +1063,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                 <Typography variant="caption" sx={{lineHeight: 1, whiteSpace: 'nowrap'}}>
                                                                     Lv.{selected.iv.level}
                                                                 </Typography>
-                                                                <PokemonIcon idForm={selected.iv.idForm} size={24}/>
+                                                                <PokemonIcon idForm={selected.iv.idForm} size={24} shiny={selected.iv.shiny}/>
                                                             </Stack>
                                                         </Box>
                                                         <Stack spacing={0} sx={{minWidth: 0}}>
@@ -1126,7 +1126,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                     <Typography variant="caption" sx={{lineHeight: 1, whiteSpace: 'nowrap'}}>
                                                                         Lv.{item.iv.level}
                                                                     </Typography>
-                                                                    <PokemonIcon idForm={item.iv.idForm} size={24}/>
+                                                                    <PokemonIcon idForm={item.iv.idForm} size={24} shiny={item.iv.shiny}/>
                                                                 </Stack>
                                                             </Box>
                                                             <Stack spacing={0} sx={{minWidth: 0}}>
@@ -1278,7 +1278,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                     <Typography variant="caption" sx={{lineHeight: 1, whiteSpace: 'nowrap'}}>
                                                                         Lv.{item.iv.level}
                                                                     </Typography>
-                                                                    <PokemonIcon idForm={item.iv.idForm} size={24}/>
+                                                                    <PokemonIcon idForm={item.iv.idForm} size={24} shiny={item.iv.shiny}/>
                                                                 </Stack>
                                                             </Box>
                                                         <Stack spacing={0} sx={{minWidth: 0}}>
@@ -1518,7 +1518,7 @@ const PokedayTableDialog = React.memo(({open, onClose, parameter, boxItems}: {
                                                                             alignItems="center"
                                                                             sx={{minWidth: 0}}
                                                                         >
-                                                                            <PokemonIcon idForm={item.iv.idForm} size={16}/>
+                                                                            <PokemonIcon idForm={item.iv.idForm} size={16} shiny={item.iv.shiny}/>
                                                                             <Typography variant="caption" sx={{lineHeight: 1}}>
                                                                                 {formatDailyDetail(detail)}
                                                                             </Typography>

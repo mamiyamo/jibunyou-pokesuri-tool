@@ -251,7 +251,7 @@ const TeamPlanView = React.memo(({state, dispatch}: {
                     </Typography> : result.candidates.map(member => (
                         <article key={member.item.id}>
                             <span className="color" style={{background: getMemberColor(member.item.iv.idForm)}}/>
-                            <PokemonIcon idForm={member.item.iv.idForm} size={34}/>
+                            <PokemonIcon idForm={member.item.iv.idForm} size={34} shiny={member.item.iv.shiny}/>
                             <div>
                                 <strong>{member.item.filledNickname(t)}</strong>
                                 <small>
@@ -457,7 +457,7 @@ const ManualPlanEditor = React.memo(({candidates, activeSlot, setActiveSlot, seg
             </Typography> : visibleSegments.map(segment => {
                 const item = candidates.find(candidate => candidate.id === segment.itemId);
                 return <span key={segment.id}>
-                    <PokemonIcon idForm={item?.iv.idForm ?? 0} size={20}/>
+                    <PokemonIcon idForm={item?.iv.idForm ?? 0} size={20} shiny={item?.iv.shiny}/>
                     <b>{segment.rowIndex + 1}</b>
                     <span>{item?.filledNickname(t) ?? '-'}</span>
                     <small>
@@ -657,7 +657,9 @@ const TeamTimeline = React.memo(({members, skillRoundingMode, isManual, manualSe
                                             {clipped.startHour > periodRange.startHour && <em className="segment-time">
                                                 {formatTimelineHour(clipped.startHour + timelineStartClockHour)}頃
                                             </em>}
-                                            <span className="segment-icon"><PokemonIcon idForm={clipped.idForm} size={18}/></span>
+                                            <span className="segment-icon">
+                                                <PokemonIcon idForm={clipped.idForm} size={18} shiny={clipped.shiny}/>
+                                            </span>
                                             {duplicateRanges.map((range, index) => (
                                                 <span
                                                     key={index}
@@ -937,6 +939,7 @@ type TimelineSegment = {
     rowIndex: number;
     name: string;
     idForm: number;
+    shiny: boolean;
     startHour: number;
     hours: number;
     color: string;
@@ -1468,6 +1471,7 @@ function createTimelineSegment(
         rowIndex: segment.rowIndex,
         name: member.item.filledNickname(t),
         idForm: member.item.iv.idForm,
+        shiny: member.item.iv.shiny,
         startHour: segment.startHour,
         hours,
         color,
@@ -1502,6 +1506,7 @@ function createTimelineRows(members: DailyPlannerAllocationMember[],
             rowIndex: -1,
             name: member.item.filledNickname(t),
             idForm: member.item.iv.idForm,
+            shiny: member.item.iv.shiny,
             startHour: 0,
             hours: member.totalHours,
             color,
@@ -1562,6 +1567,7 @@ function createManualTimelineRows(
             rowIndex,
             name: member.item.filledNickname(t),
             idForm: member.item.iv.idForm,
+            shiny: member.item.iv.shiny,
             startHour: segment.startHour,
             hours,
             color: getMemberColor(member.item.iv.idForm),

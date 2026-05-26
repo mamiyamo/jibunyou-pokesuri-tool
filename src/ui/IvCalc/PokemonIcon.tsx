@@ -4,9 +4,10 @@ import PokemonIconData from './PokemonIconData';
 import PokemonIv from '../../util/PokemonIv';
 import { AppConfigContext } from '../AppConfig';
 
-const PokemonIcon = React.memo(({idForm, size}: {
+const PokemonIcon = React.memo(({idForm, size, shiny = false}: {
     idForm: number,
     size: number,
+    shiny?: boolean,
 }) => {
     const appConfig = React.useContext(AppConfigContext);
     if (appConfig.iconUrl !== null && appConfig.iconUrl.match(/^https?:\/\//)) {
@@ -14,18 +15,22 @@ const PokemonIcon = React.memo(({idForm, size}: {
         const id = PokemonIv.getIdByIdForm(idForm);
         url = url.replace(/@ID(\d)@/g,
             (m, num) => id.toString().padStart(parseInt(num, 10), "0"));
-        return <img src={url} width={size} height={size} alt={id.toString()}/>;
+        return <img src={url} width={size} height={size} alt={id.toString()}
+            style={shiny ? shinyIconStyle : undefined}/>;
     }
     
-    const elements = createIconElements(idForm, size);
-    return <StyledIconContainer style={{width: `${size}px`, height: `${size}px`}}>
+        const elements = createIconElements(idForm, shiny, size);
+    return <StyledIconContainer style={{
+        width: `${size}px`,
+        height: `${size}px`,
+    }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
             {elements}
         </svg>
     </StyledIconContainer>;
 });
 
-function createIconElements(idForm: number, size: number): React.ReactElement[] {
+function createIconElements(idForm: number, shiny: boolean, size: number): React.ReactElement[] {
     let id: number;
     if (idForm in PokemonIconData) {
         id = idForm;
@@ -37,20 +42,21 @@ function createIconElements(idForm: number, size: number): React.ReactElement[] 
         }
     }
 
-    const elements = PokemonIconData[id];
+    const {rects, normalPallet, shinyPallet} = PokemonIconData[id];
     const shape: React.ReactElement[] = [];
     let i = 0;
-    for (const datum of elements) {
+    for (const datum of rects) {
         const props: {rx?: string, ry?: string} = {};
         if (datum.r !== undefined) {
             props.rx = props.ry = (size * datum.r).toFixed(1);
         }
+        const pallet = shiny ? shinyPallet : normalPallet;
         shape.push(<rect key={i}
             x={(size * datum.x).toFixed(1)}
             y={(size * datum.y).toFixed(1)}
             width={(size * datum.w).toFixed(1)}
             height={(size * datum.h).toFixed(1)}
-            fill={datum.color} {...props}/>);
+            fill={pallet[datum.color]} {...props}/>);
         i++;
     }
     return shape;
