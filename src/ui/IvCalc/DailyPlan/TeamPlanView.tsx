@@ -63,13 +63,13 @@ function getMemberColor(idForm: number): string {
     if (!(id in PokemonIconData)) {
         id = PokemonIv.getIdByIdForm(idForm);
     }
-    const rects = PokemonIconData[id];
-    if (rects === undefined) {
+    const iconData = PokemonIconData[id];
+    if (iconData === undefined || iconData.rects.length === 0) {
         return timelineColors[Math.abs(idForm) % timelineColors.length];
     }
-    const largest = rects.reduce((best, rect) =>
-        rect.w * rect.h > best.w * best.h ? rect : best, rects[0]);
-    return largest.color;
+    const largest = iconData.rects.reduce((best, rect) =>
+        rect.w * rect.h > best.w * best.h ? rect : best, iconData.rects[0]);
+    return iconData.normalPallet[largest.color] ?? timelineColors[Math.abs(idForm) % timelineColors.length];
 }
 
 const TeamPlanView = React.memo(({state, dispatch}: {
