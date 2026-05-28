@@ -2334,6 +2334,117 @@ const StyledRoot = styled('div')({
             gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
         },
     },
+    '@media (max-width: 480px)': {
+        '& section.summary': {
+            padding: '.45rem .4rem .55rem',
+            borderRadius: '.35rem',
+            '& > header': {
+                display: 'block',
+                '& h3': {
+                    fontSize: '.92rem',
+                    '& > small': {
+                        display: 'block',
+                        margin: '.12rem 0 0',
+                        fontSize: '.62rem',
+                        whiteSpace: 'normal',
+                    },
+                },
+                '& .header-actions': {
+                    justifyContent: 'flex-start',
+                    gap: '.25rem',
+                    marginTop: '.35rem',
+                    '& button': {
+                        minWidth: 'auto',
+                        padding: '2px 6px',
+                        fontSize: '.68rem',
+                    },
+                },
+            },
+        },
+        '& .cards': {
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: '.22rem',
+            '& > div': {
+                padding: '.25rem .28rem',
+                '& > p': {
+                    display: 'block',
+                    margin: 0,
+                    fontSize: '.62rem',
+                    lineHeight: 1.1,
+                },
+                '& > h6': {
+                    display: 'block',
+                    fontSize: '.86rem',
+                    lineHeight: 1.05,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                },
+                '& > details > summary': {
+                    fontSize: '.62rem',
+                },
+            },
+        },
+        '& .manual-editor': {
+            padding: '.3rem',
+            '& .manual-controls': {
+                gridTemplateColumns: '1fr',
+                gap: '.25rem',
+            },
+            '& .manual-segments > span': {
+                fontSize: '.68rem',
+            },
+        },
+        '& .timeline': {
+            gap: '12px',
+            marginTop: '.65rem',
+            overflowX: 'auto',
+            overflowY: 'visible',
+            padding: '.15rem 0 .7rem',
+            WebkitOverflowScrolling: 'touch',
+            '& > *': {
+                minWidth: '760px',
+            },
+        },
+        '& .helping-bonus-row, & .timeline-row': {
+            gridTemplateColumns: '1.1rem 1fr',
+            gap: '.25rem',
+            '& > span': {
+                fontSize: '.62rem',
+            },
+        },
+        '& .timeline-row .timeline-part > i > .segment-yield': {
+            fontSize: '.52rem',
+            '& svg': {
+                width: '.62rem',
+                height: '.62rem',
+            },
+        },
+        '& .ingredients': {
+            '& > div': {
+                gridTemplateColumns: '1fr',
+            },
+            '& article': {
+                gridTemplateColumns: 'auto repeat(2, auto)',
+                gap: '.25rem .35rem',
+                fontSize: '.7rem',
+            },
+        },
+        '& .members': {
+            gridTemplateColumns: '1fr',
+            gap: '.3rem',
+            '& > article': {
+                padding: '.3rem',
+                gap: '.35rem',
+                '& strong': {
+                    fontSize: '.8rem',
+                },
+                '& small': {
+                    fontSize: '.68rem',
+                },
+            },
+        },
+    },
 });
 
 function usePersistentState<T>(
