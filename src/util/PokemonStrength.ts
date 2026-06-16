@@ -15,7 +15,7 @@ import PokemonRp, {
  } from './PokemonRp';
 import {
     getSkillValue, getSkillSubValue, getMaxSkillLevel,
-    getIngredientDrawIngredients, getLunarBlessingBerryCount,
+    getIngredientDrawIngredients, getLunarBlessingBerryCount, getDracoMeteorBerryCount,
     hyperCutterSuccess, presentCandyRate,
     superLuckIngRate, superLuckShardRate, superLuckShard5Rate,
  } from './MainSkill';
@@ -613,7 +613,8 @@ class PokemonStrength {
                     skillValue2: 0, skillStrength2: 0, skillValuePerTrigger2: 0,
                 };
             }
-            case "Berry Burst": {
+            case "Berry Burst":
+            case "Berry Burst (Draco Meteor)": {
                 const ret = calculateBerryBurstStrength(this.iv, param,
                     bonus.berryBurst, skillLevel);
                 return {
@@ -1131,8 +1132,14 @@ export function calculateBerryBurstStrength(iv: PokemonIv, param: StrengthParame
             break;
         }
         case "Berry Burst (Draco Meteor)": {
-            myBerryCount = 0;
-            othersBerryCount = 0;
+            const cnt = getDracoMeteorBerryCount(
+                _skillLevel,
+                param.berryBurstTeam.auto ?
+                    team.filter(x => x.type === iv.pokemon.type).length :
+                    param.berryBurstTeam.species,
+                param.latiTwins);
+            myBerryCount = Math.ceil(bonus * cnt.myBerryCount);
+            othersBerryCount = Math.ceil(bonus * cnt.othersBerryCount);
             break;
         }
         default:

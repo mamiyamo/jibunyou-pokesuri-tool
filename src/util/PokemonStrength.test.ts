@@ -231,8 +231,17 @@ describe('PokemonStrength', () => {
             expect(resultWhistle.skillCount).toBe(0);
             expect(resultWhistle.berryStrength).toBe(result3Hours.berryStrength);
             expect(resultWhistle.ingStrength).toBe(result3Hours.ingStrength);
-        });
-    });
+	});
+
+	test("calculates strength for Latios", () => {
+		const iv = new PokemonIv({
+			pokemonName: "Latios",
+		});
+		const param = createStrengthParameter({});
+
+		expect(new PokemonStrength(iv, param).calculate().totalStrength).toBeGreaterThan(0);
+	});
+});
 
     describe('isFavoriteBerry', () => {
         test('returns false for noFavoriteFieldIndex', () => {

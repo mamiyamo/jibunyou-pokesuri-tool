@@ -5,7 +5,7 @@ import { StyledNatureUpEffect, StyledNatureDownEffect } from '../IvForm/NatureTe
 import SelectEx from '../../common/SelectEx';
 import {
     getMaxSkillLevel, getSkillValue, getSkillSubValue, getSkillRandomRange,
-    getIngredientDrawIngredients, getLunarBlessingBerryCount,
+    getIngredientDrawIngredients, getLunarBlessingBerryCount, getDracoMeteorBerryCount,
     MainSkillName,
 } from '../../../util/MainSkill';
 import PokemonIv from '../../../util/PokemonIv';
@@ -72,7 +72,7 @@ const SkillTable = React.memo(({value, content, config}: {
     const skill = value.pokemon.skill;
 
     if (skill.startsWith('Berry Burst')) {
-        return <BerryBurstTable value={value}/>;
+        return <BerryBurstTable value={value} config={config}/>;
     } else if (skill === 'Energy for Everyone S (Lunar Blessing)') {
         return <LunarBlessingTable value={value} config={config}/>; 
     } else {
@@ -111,8 +111,9 @@ const NormalTable = React.memo(({value, content, config}: {
     </table>;
 });
 
-const BerryBurstTable = React.memo(({value}: {
+const BerryBurstTable = React.memo(({value, config}: {
     value: PokemonIv,
+    config: SkillDetailDialogConfig,
 }) => {
     const { t } = useTranslation();
     const skill = value.pokemon.skill;
@@ -132,8 +133,14 @@ const BerryBurstTable = React.memo(({value}: {
         <tbody>
             {[...Array(getMaxSkillLevel(skill))].map((_, i) => {
                 const level = i + 1;
-                const own = getSkillValue(skill, level);
-                const team = getSkillSubValue(skill, level);
+                let own = getSkillValue(skill, level);
+                let team = getSkillSubValue(skill, level);
+                if (skill === "Berry Burst (Draco Meteor)") {
+                    const count = getDracoMeteorBerryCount(level,
+                        config.species, config.latiTwins);
+                    own = count.myBerryCount;
+                    team = count.othersBerryCount;
+                }
                 const total = own + team * 4;
                 return (<tr key={level}>
                     <td>Lv.{level}</td>

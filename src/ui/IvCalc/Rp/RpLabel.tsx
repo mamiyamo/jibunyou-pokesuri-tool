@@ -14,7 +14,9 @@ const RpLabel = React.memo(({rp, iv, showIcon, isError, onClick}: {
     const { t } = useTranslation();
     const isEstimated = iv.level > maxLevel ||
         // RP for Latis is estimated value
-        (iv.pokemon.id === 380 && iv.skillLevel >= 4);
+        (iv.pokemon.id === 380 && iv.skillLevel >= 4) ||
+        (iv.pokemon.skill === "Berry Burst (Draco Meteor)" &&
+            iv.skillLevel >= 4 && iv.skillLevel <= 5);
 
     const clickHandler = React.useCallback(() => {
         if (onClick !== undefined) {

@@ -47,8 +47,16 @@ describe('PokemonRP', () => {
             expect(Math.floor(new PokemonRp(iv.clone({ribbon: 2})).frequency)).toBe(3827);
             expect(Math.floor(new PokemonRp(iv.clone({ribbon: 3})).frequency)).toBe(3827);
             expect(Math.floor(new PokemonRp(iv.clone({ribbon: 4})).frequency)).toBe(3225);
-        });
-    });
+	});
+
+	test("calculates RP for Latios", () => {
+		const iv = new PokemonIv({
+			pokemonName: "Latios",
+		});
+
+		expect(new PokemonRp(iv).calculate().rp).toBeGreaterThan(0);
+	});
+});
 
     describe('RP', () => {
         test('Magnezone Lv35', () => {

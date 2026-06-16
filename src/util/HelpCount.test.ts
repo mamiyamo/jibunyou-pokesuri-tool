@@ -160,6 +160,7 @@ describe('calculateHelpCount', () => {
         expect(result.total.normal).toBe(0);
         expect(result.awake.normal).toBe(0);
         expect(result.awake.sneakySnacking).not.toBe(0);
+        expect(result.berryHelpCount).toBeCloseTo(result.total.sneakySnacking);
     });
 
 });

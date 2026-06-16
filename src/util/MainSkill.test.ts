@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { getMaxSkillLevel, matchMainSkillName } from './MainSkill';
+import {
+    getDracoMeteorBerryCount,
+    getMaxSkillLevel,
+    getSkillSubValue,
+    getSkillValue,
+    matchMainSkillName,
+} from './MainSkill';
 import Nature from './Nature';
 import PokemonIv from './PokemonIv';
 import pokemons from '../data/pokemons';
@@ -27,6 +33,26 @@ describe('MainSkill', () => {
             expect(getMaxSkillLevel('Helper Boost')).toBe(6);
             expect(getMaxSkillLevel('Tasty Chance S')).toBe(6);
             expect(getMaxSkillLevel('Berry Burst')).toBe(6);
+        });
+    });
+
+    describe('Berry Burst (Draco Meteor)', () => {
+        test('returns berry counts for the base skill values', () => {
+            expect(getSkillValue('Berry Burst (Draco Meteor)', 1)).toBe(18);
+            expect(getSkillValue('Berry Burst (Draco Meteor)', 6)).toBe(55);
+            expect(getSkillSubValue('Berry Burst (Draco Meteor)', 1)).toBe(1);
+            expect(getSkillSubValue('Berry Burst (Draco Meteor)', 6)).toBe(4);
+        });
+
+        test('returns species and Lati twins adjusted berry counts', () => {
+            expect(getDracoMeteorBerryCount(1, 1, false)).toEqual({
+                myBerryCount: 12,
+                othersBerryCount: 1,
+            });
+            expect(getDracoMeteorBerryCount(6, 5, true)).toEqual({
+                myBerryCount: 68,
+                othersBerryCount: 5,
+            });
         });
     });
 
